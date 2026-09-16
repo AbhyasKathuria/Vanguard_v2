@@ -30,6 +30,7 @@ import {
   AlertTriangle,
   LayoutGrid,
   List,
+  Siren,
 } from "lucide-react";
 
 export default function HigherOfficialMedicalDashboard() {
@@ -58,6 +59,18 @@ export default function HigherOfficialMedicalDashboard() {
   const [submittingBlood, setSubmittingBlood] = useState(false);
   const [broadcastAlert, setBroadcastAlert] = useState<string | null>(null);
 
+  const [medicalAlerts, setMedicalAlerts] = useState<any[]>([]);
+
+  const fetchMedicalAlerts = async () => {
+    try {
+      const res = await fetch("/api/emergency/active-sos");
+      const data = await res.json();
+      if (res.ok && data.alerts) {
+        setMedicalAlerts(data.alerts);
+      }
+    } catch {}
+  };
+
   const fetchBloodData = async () => {
     try {
       const res = await fetch(`/api/modules/blood-bank?group=${groupFilter}`);
@@ -76,12 +89,14 @@ export default function HigherOfficialMedicalDashboard() {
 
   useEffect(() => {
     fetchBloodData();
+    fetchMedicalAlerts();
   }, [groupFilter]);
 
   // Live-Refresh Polling (every 6s for blood requisitions & donor telemetry)
   useEffect(() => {
     const interval = setInterval(() => {
       fetchBloodData();
+      fetchMedicalAlerts();
     }, 6000);
 
     return () => clearInterval(interval);
@@ -563,7 +578,80 @@ export default function HigherOfficialMedicalDashboard() {
 
       {/* TAB 2: Facility Bed & Trauma Telemetry */}
       {activeTab === "triage" && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="space-y-6">
+          {/* Live Medical Emergency Queue Banner */}
+          <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 shadow-xl space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-red-950/90 border border-red-800 text-red-400 flex items-center justify-center font-bold">
+                  <Siren className="w-5 h-5 animate-pulse" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-red-400">
+                    Live Trauma &amp; Ambulance Queue
+                  </span>
+                  <h3 className="text-base font-bold text-white">Active Emergency SOS Dispatches</h3>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 bg-neutral-950 border border-neutral-800 rounded-full text-xs font-mono font-bold text-neutral-300">
+                  {medicalAlerts.length} Active {medicalAlerts.length === 1 ? "Incident" : "Incidents"}
+                </span>
+              </div>
+            </div>
+
+            {medicalAlerts.length === 0 ? (
+              <div className="py-8 px-4 text-center rounded-2xl bg-neutral-950/60 border border-neutral-800/80 space-y-2">
+                <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto" />
+                <h4 className="text-sm font-bold text-white">All Clear — No Active Medical SOS Calls</h4>
+                <p className="text-xs text-neutral-400 max-w-md mx-auto">
+                  All district medical sectors nominal. Trauma centers and emergency ambulances are on standby.
+                </p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                {medicalAlerts.map((alert) => (
+                  <div
+                    key={alert.id}
+                    className="bg-neutral-950 border-2 border-red-600/80 rounded-2xl p-4 space-y-3 shadow-lg"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="px-2.5 py-0.5 rounded text-[10px] font-black uppercase font-mono bg-red-950 text-red-400 border border-red-800">
+                        {alert.category} • {alert.urgency || "CRITICAL"}
+                      </span>
+                      <span className="text-[10px] text-neutral-400 font-mono">
+                        {alert.district || "Rampur"}
+                      </span>
+                    </div>
+
+                    <div>
+                      <h4 className="text-sm font-bold text-white leading-snug">{alert.title}</h4>
+                      <p className="text-xs text-neutral-300 mt-1 line-clamp-2">{alert.description}</p>
+                    </div>
+
+                    <div className="pt-2 border-t border-neutral-800 flex items-center justify-between text-xs">
+                      <span className="text-neutral-400 flex items-center gap-1">
+                        <MapPin className="w-3.5 h-3.5 text-red-400" />
+                        <span className="truncate max-w-[140px]">{alert.location}</span>
+                      </span>
+
+                      {alert.citizenPhone && alert.citizenPhone !== "On File" && (
+                        <a
+                          href={`tel:${alert.citizenPhone}`}
+                          className="px-2.5 py-1 bg-emerald-950 hover:bg-emerald-900 border border-emerald-800 text-emerald-300 font-bold text-xs rounded-lg flex items-center gap-1 transition-colors"
+                        >
+                          <PhoneCall className="w-3 h-3" />
+                          <span>Call Patient</span>
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {[
             {
               name: "District Civil Hospital, Rampur",
@@ -645,7 +733,8 @@ export default function HigherOfficialMedicalDashboard() {
             );
           })}
         </div>
-      )}
+      </div>
+    )}
 
       {/* TAB 3: State Command HQ Relay */}
       {activeTab === "telemetry" && (

@@ -9,12 +9,12 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check recent complaints with urgency = 'Critical' AND emergency category
+    // Check recent complaints with urgency = 'Critical' AND emergency/safety category
     const criticalComplaints = await prisma.complaint.findMany({
       where: {
         status: { in: ["draft", "submitted", "in_investigation"] },
         urgency: "Critical",
-        category: "Emergency",
+        category: { in: ["Emergency", "emergency", "Medical"] },
       },
       orderBy: { createdAt: "desc" },
       take: 10,
@@ -24,11 +24,16 @@ export async function GET(request: Request) {
       },
     });
 
-    // Check recent requests with category = 'emergency'
+    // Check recent requests with category = 'emergency' (open or assigned)
     const criticalRequests = await prisma.request.findMany({
       where: {
-        status: "open",
         category: "emergency",
+        OR: [
+          { status: "open" },
+          user.role === "authority" || user.role === "super_admin"
+            ? { status: "assigned" }
+            : { status: "assigned", assignedToId: user.id },
+        ],
       },
       orderBy: { createdAt: "desc" },
       take: 10,

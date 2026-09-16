@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import VerifiedFertilizerSellers from "@/components/farmer/VerifiedFertilizerSellers";
+import DisasterAwarenessCard from "@/components/disaster/DisasterAwarenessCard";
 import {
   Wheat,
   Camera,
@@ -157,6 +158,9 @@ export default function FarmerHub() {
           AI-powered crop disease leaf diagnosis, urgent cattle triage with Mobile Vet Unit dispatch, live APMC Mandi rates, and canal irrigation schedules.
         </p>
       </div>
+
+      {/* Real-Time Disaster & Meteorological Early Warning Card */}
+      <DisasterAwarenessCard location="Rampur & Mandi Agricultural Sectors" />
 
       {/* Hub Tabs */}
       <div className="flex flex-wrap items-center gap-2 p-1.5 bg-[#1a1a1a] rounded-2xl border border-white/10">

@@ -42,6 +42,7 @@ import {
   Droplets,
 } from "lucide-react";
 import BloodBankDirectory from "@/components/blood-bank/BloodBankDirectory";
+import DisasterAwarenessCard from "@/components/disaster/DisasterAwarenessCard";
 
 export default function CitizenDashboard() {
   const { t } = useLanguage();
@@ -1008,6 +1009,8 @@ export default function CitizenDashboard() {
       {/* ================= TAB 5: DISASTER & EVACUATION SHELTERS ================= */}
       {activeMainTab === "disaster" && (
         <div className="space-y-6">
+          <DisasterAwarenessCard location={primaryLocation} />
+
           <div className="bg-white dark:bg-neutral-900 border border-neutral-200/80 dark:border-neutral-800 rounded-2xl p-6 shadow-sm space-y-4">
             <div className="flex items-center gap-3">
               <div className="w-12 h-12 rounded-full bg-red-50 dark:bg-red-950/60 text-red-600 dark:text-red-400 border border-red-200 dark:border-red-800/60 flex items-center justify-center shrink-0 shadow-2xs">

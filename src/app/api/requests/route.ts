@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { determineRoutingAndAssignment, getCategoryDefaultPriority } from "@/lib/routing";
 import { RequestCategory } from "@/lib/types";
 import { NextResponse } from "next/server";
+import { sendEmergencyPush } from "@/lib/integrations/notifications";
 
 export async function GET(request: Request) {
   try {
@@ -199,6 +200,25 @@ export async function POST(request: Request) {
         },
       },
     });
+
+    // Real-time Push Alert for Emergency and Health dispatches
+    if (
+      (category === "emergency" || category === "health") &&
+      routingResult.assignedToId
+    ) {
+      sendEmergencyPush({
+        responderId: routingResult.assignedToId,
+        responderName: routingResult.matchedPersonnelName,
+        incidentTitle: `🚨 Critical ${category.toUpperCase()} Dispatch: ${description.slice(0, 45)}...`,
+        location: location,
+        distanceKm: routingResult.distanceKm,
+        actionUrl: routingResult.matchedRole?.includes("Worker")
+          ? "/worker/dashboard"
+          : "/volunteer/dashboard",
+      }).catch((pushErr) => {
+        console.warn("[Requests API] Push dispatch warning:", pushErr);
+      });
+    }
 
     return NextResponse.json({
       success: true,

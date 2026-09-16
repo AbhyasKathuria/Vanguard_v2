@@ -95,12 +95,34 @@ export default function SOSScreenPopup({
       console.warn("Web Audio autoplay prevented by browser policy:", e);
     }
 
-    // Trigger Browser Push Notification if supported
-    if ("Notification" in window && Notification.permission === "granted") {
-      new Notification(`🚨 VANGUARD CRITICAL SOS: ${alert.category}`, {
-        body: `${alert.description} at ${alert.location}`,
-        icon: "/favicon.ico",
-      });
+    // Trigger Browser Push Notification safely without crashing on mobile
+    try {
+      if (typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+        const title = `🚨 VANGUARD CRITICAL SOS: ${alert.category || "Emergency"}`;
+        const options = {
+          body: `${alert.description || "Immediate emergency assistance required"} at ${alert.location || "Nearby Sector"}`,
+          icon: "/favicon.ico",
+          tag: "vanguard-sos-alert",
+        };
+
+        if ("serviceWorker" in navigator && navigator.serviceWorker.ready) {
+          navigator.serviceWorker.ready
+            .then((registration) => {
+              registration.showNotification(title, options);
+            })
+            .catch((swErr) => {
+              console.warn("ServiceWorker notification notice:", swErr);
+            });
+        } else {
+          try {
+            new Notification(title, options);
+          } catch (notifErr) {
+            console.warn("Direct Notification constructor blocked on mobile:", notifErr);
+          }
+        }
+      }
+    } catch (pushErr) {
+      console.warn("Client notification dispatch caught safely:", pushErr);
     }
 
     return () => {
@@ -215,7 +237,7 @@ export default function SOSScreenPopup({
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="px-3 py-1 bg-red-950/80 text-red-400 border border-red-800 rounded-lg text-xs font-bold font-mono uppercase tracking-wider flex items-center gap-1.5">
               <HeartPulse className="w-3.5 h-3.5" />
-              {alert.category} • {alert.urgency.toUpperCase()}
+              {alert.category || "Emergency"} • {(alert.urgency || "Critical").toUpperCase()}
             </span>
 
             {displayDistance !== undefined && (
@@ -227,9 +249,9 @@ export default function SOSScreenPopup({
           </div>
 
           <div>
-            <h3 className="text-xl font-bold text-white leading-snug">{alert.title}</h3>
+            <h3 className="text-xl font-bold text-white leading-snug">{alert.title || "Emergency SOS Broadcast"}</h3>
             <p className="text-xs text-neutral-300 mt-2 leading-relaxed bg-neutral-900/90 p-3.5 rounded-xl border border-neutral-800">
-              {alert.description}
+              {alert.description || "Immediate field response requested."}
             </p>
           </div>
 
@@ -239,14 +261,14 @@ export default function SOSScreenPopup({
               <span className="text-neutral-400 text-[11px] block font-medium">Exact Incident Location</span>
               <p className="text-white font-bold flex items-center gap-1.5 mt-1">
                 <MapPin className="w-4 h-4 text-red-500 shrink-0" />
-                <span>{alert.location}</span>
+                <span>{alert.location || "Location Specified"}</span>
               </p>
             </div>
 
             <div>
               <span className="text-neutral-400 text-[11px] block font-medium">Citizen / Patient Contact</span>
               <div className="flex items-center gap-2 mt-1">
-                <span className="text-white font-bold">{alert.citizenName}</span>
+                <span className="text-white font-bold">{alert.citizenName || "Citizen Reporter"}</span>
                 {alert.citizenPhone && alert.citizenPhone !== "On File" && (
                   <a
                     href={`tel:${alert.citizenPhone}`}

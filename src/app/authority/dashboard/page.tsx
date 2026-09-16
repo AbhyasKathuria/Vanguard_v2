@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import StatusBadge from "@/components/StatusBadge";
 import PriorityBadge from "@/components/PriorityBadge";
 import CategoryBadge from "@/components/CategoryBadge";
@@ -35,6 +36,10 @@ import {
   Check,
   MapPin,
   ClipboardCheck,
+  Building2,
+  LayoutGrid,
+  List,
+  ChevronRight,
 } from "lucide-react";
 
 export default function AuthorityDashboard() {
@@ -73,6 +78,7 @@ export default function AuthorityDashboard() {
   // Phase 2 Assets State
   const [assets, setAssets] = useState<any[]>([]);
   const [loadingAssets, setLoadingAssets] = useState(false);
+  const [assetViewMode, setAssetViewMode] = useState<"cards" | "table">("cards");
 
   // Phase 2 Funds State
   const [funds, setFunds] = useState<any[]>([]);
@@ -232,6 +238,18 @@ export default function AuthorityDashboard() {
     setDispatchedHotspots((prev) => ({ ...prev, [hotspotId]: true }));
   };
 
+  // Helper to map assets to photos
+  const getAssetImage = (ast: any) => {
+    const cat = (ast.category || "").toLowerCase();
+    const name = (ast.name || "").toLowerCase();
+    if (cat.includes("water") || name.includes("borewell") || name.includes("tank")) return "/images/assets/borewell.jpg";
+    if (cat.includes("light") || name.includes("light") || name.includes("lamp") || name.includes("pole")) return "/images/assets/streetlight.jpg";
+    if (cat.includes("health") || name.includes("clinic") || name.includes("hospital") || name.includes("medical")) return "/images/assets/clinic.jpg";
+    if (cat.includes("educat") || name.includes("school")) return "/images/assets/school.jpg";
+    if (cat.includes("sanitat") || name.includes("drain") || name.includes("waste")) return "/images/assets/drainage.jpg";
+    return "/images/assets/rationshop.jpg";
+  };
+
   // Sanitation Hotspot Clusters Mock / Calculation (Module 3.9)
   const sanitationHotspots = [
     {
@@ -297,95 +315,229 @@ export default function AuthorityDashboard() {
     },
   ];
 
+  const filteredRequests = requests.filter((req) => {
+    if (!searchQuery.trim()) return true;
+    const q = searchQuery.toLowerCase();
+    return (
+      (req.description && req.description.toLowerCase().includes(q)) ||
+      (req.id && req.id.toLowerCase().includes(q)) ||
+      (req.location && req.location.toLowerCase().includes(q))
+    );
+  });
+
   return (
-    <div className="space-y-6 max-w-7xl mx-auto">
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Multi-Lingual Dashboard Switcher */}
       <DashboardLanguageBanner />
 
-      {/* Authority Command Header */}
-      <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-2xl shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-950/80 px-2.5 py-1 rounded-md border border-amber-800/60 font-mono">
-              {t.authority.badge || "Local Authority"}
-            </span>
-            <span className="text-[11px] text-indigo-400 bg-indigo-950/60 border border-indigo-800/50 px-2.5 py-0.5 rounded-full font-semibold">
-              Officer Suresh Verma • Rampur District
-            </span>
-          </div>
-          <h1 className="text-2xl font-extrabold text-white mt-2">
-            Panchayat Command Center &amp; Civic Governance
-          </h1>
-          <p className="text-xs text-neutral-400 mt-0.5">
-            Real-time incident dispatch, worker verification gate, sanitation hotspot detection, and development fund monitoring.
-          </p>
-        </div>
+      {/* SAMPLE 2: Photographic Hero Band */}
+      <div className="relative rounded-3xl overflow-hidden border border-neutral-800 shadow-2xl bg-neutral-950">
+        <Image
+          src="/images/heroes/authority-hero.jpg"
+          alt="Panchayat & Civic Command"
+          fill
+          priority
+          className="object-cover object-center opacity-40"
+        />
+        <div className="absolute inset-0 bg-gradient-to-r from-neutral-950 via-neutral-950/80 to-transparent" />
 
-        <div className="flex items-center gap-2.5">
-          <button
-            onClick={() => {
-              setRefreshing(true);
-              fetchAuthorityData();
-            }}
-            disabled={refreshing}
-            className="p-2.5 rounded-xl border border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 transition-colors cursor-pointer"
-            title="Refresh telemetry"
-          >
-            <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin text-amber-400" : ""}`} />
-          </button>
+        <div className="relative z-10 p-6 sm:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+          <div className="max-w-2xl">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <span className="text-xs font-bold uppercase tracking-wider text-amber-400 bg-amber-950/80 px-2.5 py-1 rounded-md border border-amber-800/60 font-mono">
+                {t.authority?.badge || "Local Authority"}
+              </span>
+              <span className="text-[11px] text-indigo-300 bg-indigo-950/70 border border-indigo-800/50 px-2.5 py-0.5 rounded-full font-semibold">
+                Officer Suresh Verma • Rampur District
+              </span>
+            </div>
+            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+              Panchayat Command Center &amp; Civic Governance
+            </h1>
+            <p className="text-xs sm:text-sm text-neutral-300 mt-1">
+              Real-time incident dispatch, worker verification gate, sanitation hotspot detection, and development fund monitoring.
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => {
+                setRefreshing(true);
+                fetchAuthorityData();
+              }}
+              disabled={refreshing}
+              className="p-3 rounded-2xl border border-neutral-700 bg-neutral-900/90 hover:bg-neutral-800 text-neutral-200 transition-colors shadow-lg cursor-pointer"
+              title="Refresh telemetry"
+            >
+              <RefreshCw className={`w-5 h-5 ${refreshing ? "animate-spin text-amber-400" : ""}`} />
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Authority KPI Metrics Bar */}
+      {/* SAMPLE 1: Stat Callout Grid (Circular Badges + Oversized Numbers + Short Labels) */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-neutral-900 border border-neutral-800 p-5 rounded-2xl shadow-lg flex items-center justify-between">
-          <div>
-            <p className="text-[11px] uppercase tracking-wider text-neutral-400 font-medium">Total Incident Load</p>
-            <h3 className="text-2xl font-black text-white mt-1 font-mono">{stats.total}</h3>
-          </div>
-          <div className="p-3 bg-neutral-800 border border-neutral-700 rounded-xl text-neutral-300">
+        {/* Total Incident Load */}
+        <div className="bg-neutral-900/90 border border-neutral-800 p-5 rounded-2xl shadow-lg flex flex-col items-center text-center">
+          <div className="w-12 h-12 rounded-full bg-neutral-800 border border-neutral-700 flex items-center justify-center text-neutral-300 shadow-inner mb-3">
             <Layers className="w-5 h-5" />
           </div>
+          <span className="text-3xl font-black font-mono tracking-tight text-white">{stats.total}</span>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-neutral-400 mt-1">Total Incident Load</span>
         </div>
 
-        <div className="bg-neutral-900 border border-amber-900/40 p-5 rounded-2xl shadow-lg flex items-center justify-between">
-          <div>
-            <p className="text-[11px] uppercase tracking-wider text-amber-400/80 font-medium">Open / Unassigned</p>
-            <h3 className="text-2xl font-black text-amber-400 mt-1 font-mono">{stats.open}</h3>
-          </div>
-          <div className="p-3 bg-amber-950/60 border border-amber-800/60 rounded-xl text-amber-400">
+        {/* Open / Unassigned */}
+        <div className="bg-neutral-900/90 border border-amber-900/40 p-5 rounded-2xl shadow-lg flex flex-col items-center text-center">
+          <div className="w-12 h-12 rounded-full bg-amber-950/70 border border-amber-800/60 flex items-center justify-center text-amber-400 shadow-inner mb-3">
             <Clock className="w-5 h-5" />
           </div>
+          <span className="text-3xl font-black font-mono tracking-tight text-amber-400">{stats.open}</span>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-amber-400/80 mt-1">Open / Unassigned</span>
         </div>
 
-        <div className="bg-neutral-900 border border-emerald-900/40 p-5 rounded-2xl shadow-lg flex items-center justify-between">
-          <div>
-            <p className="text-[11px] uppercase tracking-wider text-emerald-400/80 font-medium">Verified Workers</p>
-            <h3 className="text-2xl font-black text-emerald-400 mt-1 font-mono">{stats.verifiedWorkers}</h3>
-          </div>
-          <div className="p-3 bg-emerald-950/60 border border-emerald-800/60 rounded-xl text-emerald-400">
+        {/* Verified Workers */}
+        <div className="bg-neutral-900/90 border border-emerald-900/40 p-5 rounded-2xl shadow-lg flex flex-col items-center text-center">
+          <div className="w-12 h-12 rounded-full bg-emerald-950/70 border border-emerald-800/60 flex items-center justify-center text-emerald-400 shadow-inner mb-3">
             <UserCheck className="w-5 h-5" />
           </div>
+          <span className="text-3xl font-black font-mono tracking-tight text-emerald-400">{stats.verifiedWorkers}</span>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-emerald-400/80 mt-1">Verified Workers</span>
         </div>
 
-        <div className="bg-neutral-900 border border-purple-900/40 p-5 rounded-2xl shadow-lg flex items-center justify-between">
-          <div>
-            <p className="text-[11px] uppercase tracking-wider text-purple-400/80 font-medium">Verified Volunteers</p>
-            <h3 className="text-2xl font-black text-purple-400 mt-1 font-mono">{stats.verifiedVolunteers}</h3>
-          </div>
-          <div className="p-3 bg-purple-950/60 border border-purple-800/60 rounded-xl text-purple-400">
+        {/* Verified Volunteers */}
+        <div className="bg-neutral-900/90 border border-purple-900/40 p-5 rounded-2xl shadow-lg flex flex-col items-center text-center">
+          <div className="w-12 h-12 rounded-full bg-purple-950/70 border border-purple-800/60 flex items-center justify-center text-purple-400 shadow-inner mb-3">
             <ShieldCheck className="w-5 h-5" />
           </div>
+          <span className="text-3xl font-black font-mono tracking-tight text-purple-400">{stats.verifiedVolunteers}</span>
+          <span className="text-[11px] font-bold uppercase tracking-wider text-purple-400/80 mt-1">Verified Volunteers</span>
         </div>
       </div>
 
-      {/* Tabs */}
+      {/* SAMPLE 2: Dark Contrasting 4-Tile Module Section */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* PDS Fair Price Shop */}
+        <button
+          onClick={() => setActiveMainTab("pds")}
+          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer group relative flex flex-col justify-between ${
+            activeMainTab === "pds"
+              ? "bg-neutral-900 border-sky-500 shadow-lg shadow-sky-950/40 ring-1 ring-sky-500/50"
+              : "bg-neutral-900/80 border-neutral-800 hover:border-neutral-700 hover:bg-neutral-800/70"
+          }`}
+        >
+          <div className="flex items-start justify-between mb-3">
+            <div className="w-10 h-10 rounded-xl bg-sky-950/60 border border-sky-800/50 flex items-center justify-center text-sky-400 group-hover:scale-105 transition-transform">
+              <Package className="w-5 h-5" />
+            </div>
+            <span className="text-[10px] font-mono font-bold text-sky-400 bg-sky-950/80 border border-sky-800/60 px-2 py-0.5 rounded">
+              3 Shops Live
+            </span>
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-white group-hover:text-sky-300 transition-colors">PDS Fair Price Shop</h3>
+            <p className="text-xs text-neutral-400 mt-0.5 line-clamp-1">Grain quotas & biometric POS device uptime</p>
+          </div>
+          <div className="mt-3 pt-2 border-t border-neutral-800/60 flex items-center justify-between text-[11px] font-bold text-sky-400">
+            <span>Inspect Inventory</span>
+            <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </button>
+
+        {/* Clean Community Hotspots */}
+        <button
+          onClick={() => setActiveMainTab("hotspots")}
+          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer group relative flex flex-col justify-between ${
+            activeMainTab === "hotspots"
+              ? "bg-neutral-900 border-emerald-500 shadow-lg shadow-emerald-950/40 ring-1 ring-emerald-500/50"
+              : "bg-neutral-900/80 border-neutral-800 hover:border-neutral-700 hover:bg-neutral-800/70"
+          }`}
+        >
+          <div className="flex items-start justify-between mb-3">
+            <div className="w-10 h-10 rounded-xl bg-emerald-950/60 border border-emerald-800/50 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform">
+              <Trash2 className="w-5 h-5" />
+            </div>
+            <span className="text-[10px] font-mono font-bold text-emerald-400 bg-emerald-950/80 border border-emerald-800/60 px-2 py-0.5 rounded">
+              300m Clusters
+            </span>
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-white group-hover:text-emerald-300 transition-colors">Clean Community</h3>
+            <p className="text-xs text-neutral-400 mt-0.5 line-clamp-1">3 active sanitation clusters aggregated</p>
+          </div>
+          <div className="mt-3 pt-2 border-t border-neutral-800/60 flex items-center justify-between text-[11px] font-bold text-emerald-400">
+            <span>Dispatch Crew</span>
+            <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </button>
+
+        {/* Public Asset Watch */}
+        <button
+          onClick={() => {
+            setActiveMainTab("assets");
+            fetchAssets();
+          }}
+          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer group relative flex flex-col justify-between ${
+            activeMainTab === "assets"
+              ? "bg-neutral-900 border-blue-500 shadow-lg shadow-blue-950/40 ring-1 ring-blue-500/50"
+              : "bg-neutral-900/80 border-neutral-800 hover:border-neutral-700 hover:bg-neutral-800/70"
+          }`}
+        >
+          <div className="flex items-start justify-between mb-3">
+            <div className="w-10 h-10 rounded-xl bg-blue-950/60 border border-blue-800/50 flex items-center justify-center text-blue-400 group-hover:scale-105 transition-transform">
+              <Wrench className="w-5 h-5" />
+            </div>
+            <span className="text-[10px] font-mono font-bold text-blue-400 bg-blue-950/80 border border-blue-800/60 px-2 py-0.5 rounded">
+              Photo Audit
+            </span>
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-white group-hover:text-blue-300 transition-colors">Public Asset Watch</h3>
+            <p className="text-xs text-neutral-400 mt-0.5 line-clamp-1">Borewells, streetlights, clinics, schools</p>
+          </div>
+          <div className="mt-3 pt-2 border-t border-neutral-800/60 flex items-center justify-between text-[11px] font-bold text-blue-400">
+            <span>Inspect Assets</span>
+            <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </button>
+
+        {/* Development Funds */}
+        <button
+          onClick={() => {
+            setActiveMainTab("funds");
+            fetchFunds();
+          }}
+          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer group relative flex flex-col justify-between ${
+            activeMainTab === "funds"
+              ? "bg-neutral-900 border-amber-500 shadow-lg shadow-amber-950/40 ring-1 ring-amber-500/50"
+              : "bg-neutral-900/80 border-neutral-800 hover:border-neutral-700 hover:bg-neutral-800/70"
+          }`}
+        >
+          <div className="flex items-start justify-between mb-3">
+            <div className="w-10 h-10 rounded-xl bg-amber-950/60 border border-amber-800/50 flex items-center justify-center text-amber-400 group-hover:scale-105 transition-transform">
+              <DollarSign className="w-5 h-5" />
+            </div>
+            <span className="text-[10px] font-mono font-bold text-amber-400 bg-amber-950/80 border border-amber-800/60 px-2 py-0.5 rounded">
+              Gram Panchayat
+            </span>
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-white group-hover:text-amber-300 transition-colors">Development Funds</h3>
+            <p className="text-xs text-neutral-400 mt-0.5 line-clamp-1">Spending vs physical progress auditing</p>
+          </div>
+          <div className="mt-3 pt-2 border-t border-neutral-800/60 flex items-center justify-between text-[11px] font-bold text-amber-400">
+            <span>Audit Funds</span>
+            <ChevronRight className="w-3.5 h-3.5 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </button>
+      </div>
+
+      {/* Main Tabs Navigation */}
       <div className="flex flex-wrap items-center gap-2 border-b border-neutral-800 pb-3">
         <button
           onClick={() => setActiveMainTab("requests")}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
             activeMainTab === "requests"
-              ? "bg-amber-500 text-black shadow-md shadow-amber-950"
+              ? "bg-amber-500 text-black shadow-md shadow-amber-950 font-black"
               : "bg-neutral-900 text-neutral-400 hover:text-white border border-neutral-800"
           }`}
         >
@@ -397,7 +549,7 @@ export default function AuthorityDashboard() {
           onClick={() => setActiveMainTab("personnel")}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
             activeMainTab === "personnel"
-              ? "bg-amber-500 text-black shadow-md shadow-amber-950"
+              ? "bg-amber-500 text-black shadow-md shadow-amber-950 font-black"
               : "bg-neutral-900 text-neutral-400 hover:text-white border border-neutral-800"
           }`}
         >
@@ -409,7 +561,7 @@ export default function AuthorityDashboard() {
           onClick={() => setActiveMainTab("hotspots")}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
             activeMainTab === "hotspots"
-              ? "bg-amber-500 text-black shadow-md shadow-amber-950"
+              ? "bg-amber-500 text-black shadow-md shadow-amber-950 font-black"
               : "bg-neutral-900 text-neutral-400 hover:text-white border border-neutral-800"
           }`}
         >
@@ -421,7 +573,7 @@ export default function AuthorityDashboard() {
           onClick={() => setActiveMainTab("pds")}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
             activeMainTab === "pds"
-              ? "bg-amber-500 text-black shadow-md shadow-amber-950"
+              ? "bg-amber-500 text-black shadow-md shadow-amber-950 font-black"
               : "bg-neutral-900 text-neutral-400 hover:text-white border border-neutral-800"
           }`}
         >
@@ -436,7 +588,7 @@ export default function AuthorityDashboard() {
           }}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
             activeMainTab === "assets"
-              ? "bg-amber-500 text-black shadow-md shadow-amber-950"
+              ? "bg-amber-500 text-black shadow-md shadow-amber-950 font-black"
               : "bg-neutral-900 text-neutral-400 hover:text-white border border-neutral-800"
           }`}
         >
@@ -451,7 +603,7 @@ export default function AuthorityDashboard() {
           }}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
             activeMainTab === "funds"
-              ? "bg-amber-500 text-black shadow-md shadow-amber-950"
+              ? "bg-amber-500 text-black shadow-md shadow-amber-950 font-black"
               : "bg-neutral-900 text-neutral-400 hover:text-white border border-neutral-800"
           }`}
         >
@@ -463,7 +615,7 @@ export default function AuthorityDashboard() {
           onClick={() => setActiveMainTab("ward")}
           className={`px-4 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer flex items-center gap-2 ${
             activeMainTab === "ward"
-              ? "bg-amber-500 text-black shadow-md shadow-amber-950"
+              ? "bg-amber-500 text-black shadow-md shadow-amber-950 font-black"
               : "bg-neutral-900 text-neutral-400 hover:text-white border border-neutral-800"
           }`}
         >
@@ -506,7 +658,7 @@ export default function AuthorityDashboard() {
             </div>
           </div>
 
-          {/* Table */}
+          {/* Incident Table */}
           <div className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden shadow-xl">
             <div className="overflow-x-auto">
               <table className="w-full text-left text-xs">
@@ -522,7 +674,7 @@ export default function AuthorityDashboard() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-neutral-800/60 font-sans">
-                  {requests.map((req) => (
+                  {filteredRequests.map((req) => (
                     <tr key={req.id} className="hover:bg-neutral-800/40 transition-colors">
                       <td className="px-4 py-3.5">
                         <div className="font-semibold text-white truncate max-w-xs">{req.description}</div>
@@ -557,6 +709,13 @@ export default function AuthorityDashboard() {
                       </td>
                     </tr>
                   ))}
+                  {filteredRequests.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="text-center py-8 text-neutral-500 text-xs">
+                        No incident tickets found matching the filter.
+                      </td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -778,83 +937,217 @@ export default function AuthorityDashboard() {
       )}
 
       {/* ================= TAB 5: PUBLIC ASSET WATCH (Module 3.5) ================= */}
+      {/* SAMPLE 2: Photo-Icon Overlay Cards */}
       {activeMainTab === "assets" && (
         <div className="space-y-4">
-          <div className="bg-neutral-900 border border-neutral-800 p-5 rounded-2xl shadow-xl flex items-center justify-between">
+          <div className="bg-neutral-900 border border-neutral-800 p-5 rounded-2xl shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <h2 className="text-base font-bold text-white flex items-center gap-2">
                 <Wrench className="w-5 h-5 text-blue-400" />
                 Public Physical Asset Watch &amp; Inspection Audit
               </h2>
               <p className="text-xs text-neutral-400 mt-1">
-                Track status of solar borewells, culverts, streetlights, and primary health clinics.
+                Visual health status of borewells, streetlights, primary clinics, schools, and sanitation culverts.
               </p>
             </div>
-            <Link
-              href="/inspect"
-              className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow"
-            >
-              <span>Field Inspection Camera Mode</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </Link>
-          </div>
+            <div className="flex items-center gap-2">
+              <div className="bg-neutral-950 p-1 rounded-xl border border-neutral-800 flex items-center gap-1">
+                <button
+                  onClick={() => setAssetViewMode("cards")}
+                  className={`p-1.5 rounded-lg text-xs transition-colors ${
+                    assetViewMode === "cards" ? "bg-neutral-800 text-white" : "text-neutral-500 hover:text-neutral-300"
+                  }`}
+                  title="Card view"
+                >
+                  <LayoutGrid className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => setAssetViewMode("table")}
+                  className={`p-1.5 rounded-lg text-xs transition-colors ${
+                    assetViewMode === "table" ? "bg-neutral-800 text-white" : "text-neutral-500 hover:text-neutral-300"
+                  }`}
+                  title="Table view"
+                >
+                  <List className="w-4 h-4" />
+                </button>
+              </div>
 
-          <div className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden shadow-xl">
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-neutral-950 text-[10px] font-mono uppercase tracking-wider text-neutral-400 border-b border-neutral-800">
-                  <tr>
-                    <th className="px-4 py-3.5">Asset Code / Name</th>
-                    <th className="px-4 py-3.5">Category</th>
-                    <th className="px-4 py-3.5">Department</th>
-                    <th className="px-4 py-3.5">Condition</th>
-                    <th className="px-4 py-3.5">Location</th>
-                    <th className="px-4 py-3.5 text-right">QR / Direct Action</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-neutral-800">
-                  {assets.map((ast) => (
-                    <tr key={ast.id} className="hover:bg-neutral-800/40">
-                      <td className="px-4 py-3.5">
-                        <div className="font-bold text-white">{ast.name}</div>
-                        <div className="font-mono text-[10px] text-sky-400">{ast.id}</div>
-                      </td>
-                      <td className="px-4 py-3.5 capitalize text-neutral-300">
-                        {ast.category.replace("_", " ")}
-                      </td>
-                      <td className="px-4 py-3.5 text-neutral-300">
-                        {ast.department}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
-                            ast.condition === "good"
-                              ? "bg-emerald-950 text-emerald-400 border border-emerald-800"
-                              : ast.condition === "needs_repair"
-                              ? "bg-amber-950 text-amber-400 border border-amber-800"
-                              : "bg-red-950 text-red-400 border border-red-800"
-                          }`}
-                        >
-                          {ast.condition.replace("_", " ")}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5 text-neutral-400">
-                        {ast.location}, {ast.district}
-                      </td>
-                      <td className="px-4 py-3.5 text-right">
-                        <Link
-                          href="/inspect"
-                          className="px-2.5 py-1 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded-lg text-xs font-semibold"
-                        >
-                          Verify Condition
-                        </Link>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              <Link
+                href="/inspect"
+                className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shadow transition-colors"
+              >
+                <span>Field Camera Mode</span>
+                <ArrowRight className="w-3.5 h-3.5" />
+              </Link>
             </div>
           </div>
+
+          {loadingAssets ? (
+            <div className="p-12 text-center text-neutral-400 flex flex-col items-center justify-center gap-2">
+              <Loader2 className="w-6 h-6 animate-spin text-blue-400" />
+              <span className="text-xs">Loading civic infrastructure assets...</span>
+            </div>
+          ) : assetViewMode === "cards" ? (
+            /* SAMPLE 2: Photo-Icon Overlay Card Grid */
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+              {assets.map((ast) => {
+                const isGood = ast.condition === "good";
+                const isRepair = ast.condition === "needs_repair";
+                return (
+                  <div
+                    key={ast.id}
+                    className="group relative rounded-2xl overflow-hidden border border-neutral-800 bg-neutral-900 hover:border-neutral-700 transition-all shadow-xl flex flex-col justify-between"
+                  >
+                    {/* Photographic Cover with Overlays */}
+                    <div className="relative h-44 w-full overflow-hidden bg-neutral-950">
+                      <Image
+                        src={getAssetImage(ast)}
+                        alt={ast.name}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-500 opacity-80"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-neutral-950 via-neutral-950/40 to-black/60" />
+
+                      {/* Top-Left Category & Code Badge */}
+                      <div className="absolute top-3 left-3 flex items-center gap-1.5">
+                        <span className="text-[10px] font-mono font-bold text-white bg-black/70 backdrop-blur-md px-2.5 py-1 rounded-lg border border-white/10">
+                          {ast.id}
+                        </span>
+                      </div>
+
+                      {/* Top-Right Dual-Encoded Condition Badge */}
+                      <div className="absolute top-3 right-3">
+                        <span
+                          className={`px-2.5 py-1 rounded-lg text-[10px] font-bold uppercase tracking-wider backdrop-blur-md flex items-center gap-1 border shadow-md ${
+                            isGood
+                              ? "bg-emerald-950/90 text-emerald-300 border-emerald-700/80"
+                              : isRepair
+                              ? "bg-amber-950/90 text-amber-300 border-amber-700/80"
+                              : "bg-red-950/90 text-red-300 border-red-700/80"
+                          }`}
+                        >
+                          {isGood ? (
+                            <>
+                              <CheckCircle2 className="w-3 h-3 text-emerald-400" />
+                              <span>✓ Good</span>
+                            </>
+                          ) : isRepair ? (
+                            <>
+                              <AlertTriangle className="w-3 h-3 text-amber-400" />
+                              <span>⚠ Needs Repair</span>
+                            </>
+                          ) : (
+                            <>
+                              <AlertCircle className="w-3 h-3 text-red-400" />
+                              <span>✕ Critical</span>
+                            </>
+                          )}
+                        </span>
+                      </div>
+
+                      {/* Bottom Image Overlay Title */}
+                      <div className="absolute bottom-3 left-3 right-3">
+                        <h3 className="text-sm font-bold text-white drop-shadow-sm line-clamp-1">{ast.name}</h3>
+                        <span className="text-[10px] font-medium text-neutral-300 uppercase tracking-wider">
+                          {ast.category ? ast.category.replace("_", " ") : "Infrastructure"}
+                        </span>
+                      </div>
+                    </div>
+
+                    {/* Card Body & Location */}
+                    <div className="p-4 space-y-3">
+                      <div className="text-xs space-y-1.5">
+                        <div className="flex items-center gap-1.5 text-neutral-300">
+                          <Building2 className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
+                          <span className="truncate">{ast.department || "Panchayat Engineering"}</span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-neutral-400">
+                          <MapPin className="w-3.5 h-3.5 text-neutral-500 shrink-0" />
+                          <span className="truncate">{ast.location}, {ast.district}</span>
+                        </div>
+                      </div>
+
+                      <div className="pt-2.5 border-t border-neutral-800/80 flex items-center justify-between">
+                        <span className="text-[10px] font-mono text-neutral-400">
+                          Lat: {ast.latitude?.toFixed?.(2) || "28.61"}
+                        </span>
+                        <Link
+                          href="/inspect"
+                          className="text-xs font-bold text-blue-400 hover:text-blue-300 flex items-center gap-1 group-hover:translate-x-0.5 transition-transform"
+                        >
+                          <span>Verify Condition</span>
+                          <ArrowRight className="w-3 h-3" />
+                        </Link>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              {assets.length === 0 && (
+                <div className="col-span-3 p-8 text-center text-neutral-500 text-xs">
+                  No public assets recorded. Click field camera mode to inspect.
+                </div>
+              )}
+            </div>
+          ) : (
+            /* Table View Mode Fallback */
+            <div className="bg-neutral-900 border border-neutral-800 rounded-2xl overflow-hidden shadow-xl">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-neutral-950 text-[10px] font-mono uppercase tracking-wider text-neutral-400 border-b border-neutral-800">
+                    <tr>
+                      <th className="px-4 py-3.5">Asset Code / Name</th>
+                      <th className="px-4 py-3.5">Category</th>
+                      <th className="px-4 py-3.5">Department</th>
+                      <th className="px-4 py-3.5">Condition</th>
+                      <th className="px-4 py-3.5">Location</th>
+                      <th className="px-4 py-3.5 text-right">QR / Direct Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-neutral-800">
+                    {assets.map((ast) => (
+                      <tr key={ast.id} className="hover:bg-neutral-800/40">
+                        <td className="px-4 py-3.5">
+                          <div className="font-bold text-white">{ast.name}</div>
+                          <div className="font-mono text-[10px] text-sky-400">{ast.id}</div>
+                        </td>
+                        <td className="px-4 py-3.5 capitalize text-neutral-300">
+                          {ast.category ? ast.category.replace("_", " ") : "-"}
+                        </td>
+                        <td className="px-4 py-3.5 text-neutral-300">
+                          {ast.department}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <span
+                            className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${
+                              ast.condition === "good"
+                                ? "bg-emerald-950 text-emerald-400 border border-emerald-800"
+                                : ast.condition === "needs_repair"
+                                ? "bg-amber-950 text-amber-400 border border-amber-800"
+                                : "bg-red-950 text-red-400 border border-red-800"
+                            }`}
+                          >
+                            {ast.condition ? ast.condition.replace("_", " ") : "-"}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3.5 text-neutral-400">
+                          {ast.location}, {ast.district}
+                        </td>
+                        <td className="px-4 py-3.5 text-right">
+                          <Link
+                            href="/inspect"
+                            className="px-2.5 py-1 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 rounded-lg text-xs font-semibold"
+                          >
+                            Verify Condition
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -899,11 +1192,11 @@ export default function AuthorityDashboard() {
                   <div className="mt-3 p-2.5 bg-neutral-950 rounded-xl space-y-1.5 text-xs">
                     <div className="flex justify-between">
                       <span className="text-neutral-400">Allocated Budget:</span>
-                      <span className="font-bold text-white font-mono">₹{f.allocatedAmount.toLocaleString("en-IN")}</span>
+                      <span className="font-bold text-white font-mono">₹{f.allocatedAmount?.toLocaleString?.("en-IN") || f.allocatedAmount}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-neutral-400">Total Spent:</span>
-                      <span className="font-bold text-amber-400 font-mono">₹{f.spentAmount.toLocaleString("en-IN")}</span>
+                      <span className="font-bold text-amber-400 font-mono">₹{f.spentAmount?.toLocaleString?.("en-IN") || f.spentAmount}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-neutral-400">Physical Progress:</span>
@@ -937,7 +1230,7 @@ export default function AuthorityDashboard() {
                         </button>
                         <button
                           onClick={() => handleFlagFund(f.id)}
-                          className="px-3 py-1 bg-red-600 text-white font-bold text-xs rounded-lg"
+                          className="px-3 py-1 bg-red-600 text-white font-bold text-xs rounded-lg cursor-pointer"
                         >
                           Submit Flag
                         </button>
@@ -1055,7 +1348,7 @@ export default function AuthorityDashboard() {
                 <button
                   type="button"
                   onClick={() => setAssigningReq(null)}
-                  className="px-3.5 py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-medium"
+                  className="px-3.5 py-2 rounded-lg bg-neutral-800 hover:bg-neutral-700 text-neutral-300 text-xs font-medium cursor-pointer"
                 >
                   Cancel
                 </button>

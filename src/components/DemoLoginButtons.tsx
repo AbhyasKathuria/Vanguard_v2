@@ -342,7 +342,7 @@ export default function DemoLoginButtons() {
                 onClick={() => handleDemoLogin(acc.phone, acc.dashboardPath)}
                 className="w-full py-2.5 px-4 rounded-xl bg-neutral-900 hover:bg-[#0071E3] dark:bg-neutral-800 dark:hover:bg-[#0071E3] text-white text-xs font-bold flex items-center justify-between transition-all cursor-pointer disabled:opacity-50 shadow-xs group-hover:bg-[#0071E3]"
               >
-                <span>Launch {acc.roleLabel}</span>
+                <span className="whitespace-nowrap font-bold">Launch {acc.roleLabel}</span>
                 {isLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin text-white" />
                 ) : (

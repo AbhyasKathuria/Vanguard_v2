@@ -135,6 +135,11 @@ export default function AppShell({ user, children }: AppShellProps) {
     }`;
   };
 
+  // Full-screen minimalist landing experience on root "/"
+  if (pathname === "/") {
+    return <main className="min-h-screen bg-black text-white">{children}</main>;
+  }
+
   return (
     <div className="min-h-screen bg-[#121212] text-white flex flex-col font-sans">
       {/* Mobile Backdrop Overlay */}

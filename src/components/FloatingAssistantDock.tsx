@@ -1,11 +1,15 @@
 'use client';
 
 import React from 'react';
+import { usePathname } from 'next/navigation';
 import { Compass, MessageSquare, Bot } from 'lucide-react';
 import { useLanguage } from '@/lib/i18n/context';
 
 export default function FloatingAssistantDock() {
+  const pathname = usePathname();
   const { locale, t } = useLanguage();
+
+  if (pathname === '/') return null;
 
   const langFlags: Record<string, string> = {
     en: '🇬🇧',

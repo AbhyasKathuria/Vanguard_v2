@@ -168,8 +168,18 @@ export default function LoginPage() {
           )}
         </div>
 
-        {/* 1-Click Fast Demo Login Profiles */}
-        <div className="pt-2">
+        {/* Section Divider with Badge */}
+        <div className="flex items-center gap-4 max-w-5xl mx-auto pt-6">
+          <div className="flex-1 h-px bg-neutral-200 dark:bg-neutral-800" />
+          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-neutral-500 dark:text-neutral-400 px-4 py-1.5 rounded-full bg-white dark:bg-neutral-900 border border-neutral-200 dark:border-neutral-800 shadow-xs">
+            <Sparkles className="w-3.5 h-3.5 text-amber-500" />
+            <span>Instant 1-Click Role Launcher</span>
+          </div>
+          <div className="flex-1 h-px bg-neutral-200 dark:bg-neutral-800" />
+        </div>
+
+        {/* 1-Click Fast Demo Login Profiles (Full Width max-w-5xl) */}
+        <div className="max-w-5xl mx-auto">
           <DemoLoginButtons />
         </div>
       </div>

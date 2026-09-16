@@ -16,7 +16,6 @@ import {
   User,
   AlertCircle,
 } from "lucide-react";
-import DemoLoginButtons from "@/components/DemoLoginButtons";
 
 interface AuthFormProps {
   initialMode?: "login" | "signup";
@@ -341,9 +340,6 @@ export default function AuthForm({ initialMode = "login", prefilledPhone = "" }:
           </form>
         )}
       </div>
-
-      {/* 1-Click Fast Demo Login Profiles */}
-      <DemoLoginButtons />
     </div>
   );
 }

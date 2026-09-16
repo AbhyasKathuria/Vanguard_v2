@@ -4,7 +4,8 @@ import { UserRole } from "@/lib/types";
 import { NextResponse } from "next/server";
 
 // Fallback seed definitions for 1-click demo logins on serverless instances
-const SEEDED_DEMO_USERS: Record<string, { id: string; name: string; role: UserRole; location: string; district: string }> = {
+type DemoAccount = { id: string; name: string; role: UserRole; location: string; district: string; citizenProfile?: string; subRole?: string; wardScope?: string };
+const SEEDED_DEMO_USERS: Record<string, DemoAccount> = {
   "9876543200": { id: "usr_superadmin_1", name: "Officer Rajeshwar Rao", role: "super_admin", location: "State Command HQ", district: "All Districts" },
   "9876543210": { id: "usr_citizen_1", name: "Ramesh Sharma", role: "citizen", location: "Rampur Ward 4", district: "Rampur" },
   "9876543220": { id: "usr_citizen_2", name: "Anandi Patel", role: "citizen", location: "Sitapur Block B", district: "Sitapur" },
@@ -21,9 +22,11 @@ const SEEDED_DEMO_USERS: Record<string, { id: string; name: string; role: UserRo
   "9876543223": { id: "usr_volunteer_4", name: "Sowmya Red Cross", role: "volunteer", location: "Shivamogga Medical Center", district: "Shivamogga" },
   "9876543213": { id: "usr_authority_1", name: "Officer Suresh Verma", role: "authority", location: "Rampur Panchayat Bhavan", district: "Rampur" },
   "9876543224": { id: "usr_authority_2", name: "Officer Mallikarjun Patil", role: "authority", location: "Mandya Taluk Office", district: "Mandya" },
-  "9876543225": { id: "usr_authority_3", name: "Officer Deepa Rao", role: "authority", location: "Shivamogga District Office", district: "Shivamogga" },
   "9876543201": { id: "usr_higherauth_1", name: "District Commissioner Sharma", role: "higher_authority", location: "Divisional Commissionerate", district: "Rampur" },
   "9876543202": { id: "usr_admin_1", name: "State System Admin", role: "admin", location: "State Secretariat Command HQ", district: "All Districts" },
+  "9876543260": { id: "usr_citizen_women", name: "Sunita Devi (Women Hub)", role: "citizen", location: "Rampur Ward 3", district: "Rampur", citizenProfile: "women" },
+  "9876543270": { id: "usr_higher_medical", name: "Dr. Arvind Swaminathan (Medical Official)", role: "super_admin", location: "District Medical Command", district: "Rampur", subRole: "medical_officer" },
+  "9876543280": { id: "usr_authority_ward", name: "Rajesh Kumar (Ward Member)", role: "authority", location: "Rampur Ward 4", district: "Rampur", subRole: "ward_member", wardScope: "Ward 4" },
 };
 
 export async function POST(request: Request) {
@@ -143,6 +146,9 @@ export async function POST(request: Request) {
       role: user.role as UserRole,
       location: user.location,
       district: user.district || user.location,
+      citizenProfile: user.citizenProfile || (SEEDED_DEMO_USERS[cleanPhone] as any)?.citizenProfile || null,
+      subRole: user.subRole || (SEEDED_DEMO_USERS[cleanPhone] as any)?.subRole || null,
+      wardScope: user.wardScope || (SEEDED_DEMO_USERS[cleanPhone] as any)?.wardScope || null,
     });
 
     return NextResponse.json({
@@ -153,6 +159,9 @@ export async function POST(request: Request) {
         phone: user.phone,
         role: user.role,
         location: user.location,
+        citizenProfile: user.citizenProfile,
+        subRole: user.subRole,
+        wardScope: user.wardScope,
       },
     });
   } catch (error: any) {

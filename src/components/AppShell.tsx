@@ -70,6 +70,27 @@ export default function AppShell({ user, children }: AppShellProps) {
 
   const getRoleBadge = (role?: string) => {
     if (!role) return null;
+    if (user?.subRole === "ward_member") {
+      return (
+        <span className="bg-indigo-500/20 text-indigo-300 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider border border-indigo-500/40">
+          Ward {user.wardScope || "Member"}
+        </span>
+      );
+    }
+    if (user?.subRole === "medical_officer") {
+      return (
+        <span className="bg-rose-500/20 text-rose-300 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider border border-rose-500/40">
+          Medical Command
+        </span>
+      );
+    }
+    if (user?.citizenProfile === "women") {
+      return (
+        <span className="bg-rose-500/20 text-rose-300 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider border border-rose-500/40">
+          Women Hub
+        </span>
+      );
+    }
     switch (role) {
       case "super_admin":
         return (
@@ -197,7 +218,15 @@ export default function AppShell({ user, children }: AppShellProps) {
                 <>
                   <Link href="/citizen/dashboard" className={navLinkClasses("/citizen/dashboard")}>
                     <ListOrdered className="w-4 h-4 text-sky-400 shrink-0" />
-                    {!desktopCollapsed && <span>{t.nav.myRequests}</span>}
+                    {!desktopCollapsed && <span>{t.nav.myRequests || "My Grievance Hub"}</span>}
+                  </Link>
+                  <Link href="/citizen/women" className={navLinkClasses("/citizen/women")}>
+                    <Shield className="w-4 h-4 text-rose-400 shrink-0" />
+                    {!desktopCollapsed && <span>Women Hub (SafeLine)</span>}
+                  </Link>
+                  <Link href="/farmer" className={navLinkClasses("/farmer")}>
+                    <Wheat className="w-4 h-4 text-emerald-400 shrink-0" />
+                    {!desktopCollapsed && <span>{t.nav.farmerHub}</span>}
                   </Link>
                   <Link href="/citizen/new-request" className={navLinkClasses("/citizen/new-request")}>
                     <PlusCircle className="w-4 h-4 text-emerald-400 shrink-0" />
@@ -227,17 +256,33 @@ export default function AppShell({ user, children }: AppShellProps) {
               )}
 
               {(user.role === "authority" || user.role === "higher_authority") && (
-                <Link href="/authority/dashboard" className={navLinkClasses("/authority/dashboard")}>
-                  <Shield className="w-4 h-4 text-purple-400 shrink-0" />
-                  {!desktopCollapsed && <span>{t.nav.authorityCenter}</span>}
-                </Link>
+                <>
+                  <Link href="/authority/dashboard" className={navLinkClasses("/authority/dashboard")}>
+                    <Shield className="w-4 h-4 text-purple-400 shrink-0" />
+                    {!desktopCollapsed && (
+                      <span>
+                        {user.subRole === "ward_member" ? `Ward ${user.wardScope || "4"} Center` : (t.nav.authorityCenter || "Command Center")}
+                      </span>
+                    )}
+                  </Link>
+                  <Link href="/inspect" className={navLinkClasses("/inspect")}>
+                    <ClipboardCheck className="w-4 h-4 text-blue-400 shrink-0" />
+                    {!desktopCollapsed && <span>Public Asset Watch</span>}
+                  </Link>
+                </>
               )}
 
               {user.role === "super_admin" && (
-                <Link href="/superadmin/dashboard" className={navLinkClasses("/superadmin/dashboard")}>
-                  <Sliders className="w-4 h-4 text-sky-400 shrink-0" />
-                  {!desktopCollapsed && <span>{t.nav.superAdminCenter}</span>}
-                </Link>
+                <>
+                  <Link href="/higher-official/dashboard" className={navLinkClasses("/higher-official/dashboard")}>
+                    <HeartPulse className="w-4 h-4 text-rose-400 shrink-0" />
+                    {!desktopCollapsed && <span>Medical & Blood Command</span>}
+                  </Link>
+                  <Link href="/superadmin/dashboard" className={navLinkClasses("/superadmin/dashboard")}>
+                    <Sliders className="w-4 h-4 text-sky-400 shrink-0" />
+                    {!desktopCollapsed && <span>State HQ Governance</span>}
+                  </Link>
+                </>
               )}
             </div>
           )}

@@ -106,6 +106,9 @@ export async function getCurrentUser(): Promise<UserSession | null> {
         location: user.location || "Rampur",
         district: user.district || "Rampur",
         active: user.active ?? true,
+        citizenProfile: user.citizenProfile || null,
+        subRole: user.subRole || null,
+        wardScope: user.wardScope || null,
         workerProfile: user.workerProfile,
         volunteerProfile: user.volunteerProfile,
       };
@@ -121,6 +124,9 @@ export async function getCurrentUser(): Promise<UserSession | null> {
       location: payload.location || "Rampur",
       district: payload.district || "Rampur",
       active: true,
+      citizenProfile: payload.citizenProfile || null,
+      subRole: payload.subRole || null,
+      wardScope: payload.wardScope || null,
       workerProfile: null,
       volunteerProfile: null,
     };

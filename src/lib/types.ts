@@ -51,6 +51,9 @@ export interface JWTPayload {
   role: UserRole;
   location: string;
   district?: string;
+  citizenProfile?: string | null;
+  subRole?: string | null;
+  wardScope?: string | null;
 }
 
 export interface UserSession {
@@ -62,6 +65,9 @@ export interface UserSession {
   location: string;
   district?: string;
   active?: boolean;
+  citizenProfile?: string | null;
+  subRole?: string | null;
+  wardScope?: string | null;
   workerProfile?: {
     profession: string;
     availability: boolean;
@@ -232,5 +238,117 @@ export interface TriageEvaluation {
   matchedFacilities: EmergencyFacility[];
   requiresImmediateSos: boolean;
   disclaimer: string;
+}
+
+// ----------------------------------------------------------------------
+// Phase 2 Unified Engine Types
+// ----------------------------------------------------------------------
+
+export type ScamRiskLevel = "High Risk" | "Suspicious" | "Needs Verification" | "Likely Legitimate";
+
+export interface ScamCheckResult {
+  riskLevel: ScamRiskLevel;
+  riskScore: number; // 0 to 100 (0=safe, 100=extreme risk)
+  hedgedSummary: string;
+  matchedIndicators: string[];
+  safetyRecommendations: string[];
+  verifiedOfficialChannels?: string[];
+}
+
+export interface SchemeItem {
+  id: string;
+  code: string;
+  name: string;
+  department: string;
+  category: string;
+  description: string;
+  benefits: string;
+  eligibilityCriteria: string; // JSON string
+  requiredDocuments: string; // JSON string
+  applicationUrl?: string | null;
+  helpline?: string | null;
+  active: boolean;
+}
+
+export interface SchemeEligibilityCheck {
+  age?: number;
+  annualIncome?: number;
+  landHoldingAcres?: number;
+  gender?: "female" | "male" | "other" | "any";
+  occupation?: string;
+  category?: string;
+  state?: string;
+}
+
+export interface AssetItem {
+  id: string;
+  name: string;
+  category: string;
+  department: string;
+  location: string;
+  district: string;
+  latitude?: number | null;
+  longitude?: number | null;
+  condition: "good" | "needs_repair" | "critical_failure";
+  qrCode?: string | null;
+  installationDate?: string | Date | null;
+  lastInspectedAt?: string | Date | null;
+  complaintsCount?: number;
+  activeComplaints?: any[];
+}
+
+export interface ProjectFundItem {
+  id: string;
+  projectCode: string;
+  projectName: string;
+  department: string;
+  district: string;
+  allocatedAmount: number;
+  spentAmount: number;
+  completionPercent: number;
+  contractorName?: string | null;
+  startDate?: string | Date | null;
+  targetEndDate?: string | Date | null;
+  status: "proposed" | "in_progress" | "completed" | "delayed";
+  isDiscrepancyFlagged: boolean;
+  discrepancyNote?: string | null;
+}
+
+export interface BloodRequestItem {
+  id: string;
+  patientName: string;
+  bloodGroup: "A+" | "A-" | "B+" | "B-" | "AB+" | "AB-" | "O+" | "O-";
+  units: number;
+  hospitalName: string;
+  location: string;
+  district: string;
+  contactPhone: string;
+  urgency: "emergency" | "urgent" | "routine";
+  status: "pending" | "matched" | "fulfilled" | "cancelled";
+  matchedDonorsCount?: number;
+  createdAt: string | Date;
+}
+
+export interface SafeLineIntakePayload {
+  anonymousCode?: string;
+  category: "Domestic Abuse" | "Harassment" | "Child Welfare" | "Stalking" | "Immediate Danger" | "Counseling";
+  urgency: "Critical" | "High" | "Moderate";
+  description: string;
+  safeContactMethod?: string;
+  safeContactNumber?: string;
+  location?: string;
+  district?: string;
+  requiresDiscreetCallback?: boolean;
+}
+
+export interface TimelineItem {
+  id: string;
+  complaintId: string;
+  stage: string;
+  status: string;
+  notes?: string | null;
+  actorRole: string;
+  actorName?: string | null;
+  createdAt: string | Date;
 }
 

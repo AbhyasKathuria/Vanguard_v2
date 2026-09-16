@@ -14,6 +14,9 @@ model User {
   email        String?           @unique
   passwordHash String?
   role         String            // "citizen", "worker", "authority", "volunteer", "super_admin"
+  citizenProfile String?         @default("general") // "general", "farmer", "women"
+  subRole      String?           // "ward_member"
+  wardScope    String?           // "Ward 4, Rampur"
   language     String            @default("en")
   location     String
   district     String            @default("Rampur")
@@ -118,12 +121,21 @@ model Complaint {
   videoUrl             String?
   isAnonymous          Boolean  @default(false)
   clusterId            String?
-  escalationLevel      Int      @default(0) // 0: Panchayat, 1: Block (BDO), 2: District (DM)
+  escalationLevel      Int              @default(0) // 0: Panchayat, 1: Block (BDO), 2: District (DM)
   status               String           @default("submitted") // "draft", "submitted", "in_investigation", "resolved"
+  subcategory          String?          // e.g. "PDS_QUANTITY", "SAFELINE_HARASSMENT", "SANITATION_DUMPING", "SERVICE_DELAY"
+  assignedDepartment   String?          // inferred or selected authority department
+  assetId              String?
+  asset                Asset?           @relation(fields: [assetId], references: [id])
+  isSafeLine           Boolean          @default(false)
+  metaData             String?          // JSON metadata for PDS, Welfare benefits, Fund discrepancy, Scam flags
   createdAt            DateTime         @default(now())
   updatedAt            DateTime         @updatedAt
   taskAssignments      TaskAssignment[]
   inspections          Inspection[]
+  evidence             Evidence[]
+  timeline             Timeline[]
+  resolutions          Resolution[]
 }
 
 model AdministrativeDivision {
@@ -221,5 +233,110 @@ model TriageLog {
   dispatchedSos    Boolean  @default(false)
   location         String?
   createdAt        DateTime @default(now())
+}
+
+model Asset {
+  id             String      @id // e.g. "ASSET-10101"
+  type           String      // "school", "toilet", "road", "streetlight", "drainage", "water_tank", "hand_pump", "ration_shop", "phc"
+  name           String
+  location       String
+  district       String      @default("Rampur")
+  latitude       Float?
+  longitude      Float?
+  condition      String      @default("Good") // "Good", "Needs Repair", "Critical", "Under Maintenance"
+  department     String
+  lastInspection DateTime    @default(now())
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+  complaints     Complaint[]
+}
+
+model Evidence {
+  id          String    @id @default(cuid())
+  complaintId String
+  type        String    // "photo", "video", "audio", "doc"
+  fileUrl     String
+  location    String?
+  timestamp   DateTime  @default(now())
+
+  complaint   Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+}
+
+model Timeline {
+  id            String    @id @default(cuid())
+  complaintId   String
+  action        String    // "SUBMITTED", "ASSIGNED", "IN_INVESTIGATION", "ACTION_TAKEN", "RESOLVED", "CITIZEN_VERIFIED", "DISCREPANCY_FLAGGED"
+  performedBy   String
+  performedById String?
+  role          String?
+  remarks       String?
+  timestamp     DateTime  @default(now())
+
+  complaint     Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+}
+
+model Resolution {
+  id              String    @id @default(cuid())
+  complaintId     String
+  actionTaken     String
+  evidence        String?   // JSON or URL
+  submittedBy     String
+  timestamp       DateTime  @default(now())
+  citizenVerified Boolean   @default(false)
+
+  complaint       Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+}
+
+model Scheme {
+  id               String   @id @default(cuid())
+  name             String
+  category         String   // "Farming", "Health", "Poverty / BPL", "Women & Child", "Education / Youth", "Housing"
+  department       String
+  eligibility      String   // Text or JSON criteria
+  documents        String   // JSON string array of required documents
+  officialUrl      String
+  minAge           Int?
+  maxAge           Int?
+  incomeLimit      Int?
+  gender           String?  @default("all") // "all", "female", "male"
+  targetOccupation String?
+  description      String?
+  createdAt        DateTime @default(now())
+}
+
+model ProjectFund {
+  id                 String    @id @default(cuid())
+  title              String
+  department         String
+  allocatedAmount    Float
+  spentAmount        Float
+  status             String    @default("In Progress") // "Planned", "In Progress", "Halted", "Completed"
+  progressPercent    Int       @default(0)
+  location           String
+  district           String    @default("Rampur")
+  latitude           Float?
+  longitude          Float?
+  startDate          DateTime?
+  expectedCompletion DateTime?
+  discrepancyReports Int       @default(0)
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+}
+
+model BloodRequest {
+  id                 String   @id @default(cuid())
+  patientName        String?
+  bloodGroup         String   // "A+", "A-", "B+", "B-", "AB+", "AB-", "O+", "O-"
+  urgency            String   // "Emergency / Immediate", "Urgent / 24 Hours", "Scheduled"
+  unitsNeeded        Int      @default(1)
+  hospital           String
+  location           String
+  district           String   @default("Rampur")
+  contactPhone       String
+  status             String   @default("open") // "open", "matched", "fulfilled", "cancelled"
+  matchedDonorsCount Int      @default(0)
+  remarks            String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
 }
 

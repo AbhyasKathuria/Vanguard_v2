@@ -1,3 +1,5 @@
+import path from "path";
+import fs from "fs";
 import { PrismaClient } from "@prisma/client";
 import bcrypt from "bcryptjs";
 
@@ -7,6 +9,13 @@ async function main() {
   console.log("🌱 Seeding VANGUARD Multi-District Rural Service Routing Platform database...");
 
   // Clean existing tables
+  await prisma.bloodRequest.deleteMany();
+  await prisma.projectFund.deleteMany();
+  await prisma.scheme.deleteMany();
+  await prisma.resolution.deleteMany();
+  await prisma.timeline.deleteMany();
+  await prisma.evidence.deleteMany();
+  await prisma.asset.deleteMany();
   await prisma.complaint.deleteMany();
   await prisma.vulnerability.deleteMany();
   await prisma.callLog.deleteMany();
@@ -91,6 +100,55 @@ async function main() {
       location: "Shivamogga",
       district: "Shivamogga",
       language: "kn",
+      active: true,
+    },
+  });
+
+  // Phase 2 New Demo Accounts:
+  // 2b. Citizen with Women's Profile (SafeLine Access)
+  const citizenWomen = await prisma.user.create({
+    data: {
+      id: "usr_citizen_women",
+      name: "Sunita Devi",
+      phone: "9876543260",
+      passwordHash,
+      role: "citizen",
+      citizenProfile: "women",
+      location: "Rampur",
+      district: "Rampur",
+      language: "hi",
+      active: true,
+    },
+  });
+
+  // 1b. Higher Official (Medical & Blood Bank Scope)
+  const higherOfficialMedical = await prisma.user.create({
+    data: {
+      id: "usr_higher_medical",
+      name: "Dr. Arvind Swaminathan (CMO)",
+      phone: "9876543270",
+      passwordHash,
+      role: "super_admin",
+      location: "State Medical Directorate",
+      district: "All Districts",
+      language: "en",
+      active: true,
+    },
+  });
+
+  // 4b. Local Authority Ward Member Sub-Role
+  const wardMemberRampur = await prisma.user.create({
+    data: {
+      id: "usr_authority_ward",
+      name: "Rajesh Kumar (Panchayat Ward Member)",
+      phone: "9876543280",
+      passwordHash,
+      role: "authority",
+      subRole: "ward_member",
+      wardScope: "Ward 4, Rampur",
+      location: "Ward 4, Rampur",
+      district: "Rampur",
+      language: "hi",
       active: true,
     },
   });
@@ -858,6 +916,372 @@ async function main() {
       ],
     });
 
+    // ==========================================
+    // PHASE 2: ASSETS & PUBLIC INFRASTRUCTURE
+    // ==========================================
+    const assets = await Promise.all([
+      prisma.asset.create({
+        data: {
+          id: "ASSET-10101",
+          type: "phc",
+          name: "Rampur Primary Health Centre (PHC)",
+          location: "Civil Lines, Rampur",
+          district: "Rampur",
+          latitude: 28.8021,
+          longitude: 79.0345,
+          condition: "Good",
+          department: "Health & Family Welfare",
+        },
+      }),
+      prisma.asset.create({
+        data: {
+          id: "ASSET-10102",
+          type: "water_tank",
+          name: "Overhead Water Reservoir Tank #2",
+          location: "Sector 2, Rampur",
+          district: "Rampur",
+          latitude: 28.8115,
+          longitude: 79.0289,
+          condition: "Needs Repair",
+          department: "Panchayati Raj & Water Supply",
+        },
+      }),
+      prisma.asset.create({
+        data: {
+          id: "ASSET-10103",
+          type: "toilet",
+          name: "Government Primary School Sanitation Block",
+          location: "Village Centre, Rampur",
+          district: "Rampur",
+          latitude: 28.7984,
+          longitude: 79.0412,
+          condition: "Good",
+          department: "Education & Sanitation",
+        },
+      }),
+      prisma.asset.create({
+        data: {
+          id: "ASSET-10104",
+          type: "ration_shop",
+          name: "Fair Price Shop #12 (PDS Ration Outlet)",
+          location: "Market Road, Rampur",
+          district: "Rampur",
+          latitude: 28.8055,
+          longitude: 79.0211,
+          condition: "Good",
+          department: "Food & Civil Supplies",
+        },
+      }),
+      prisma.asset.create({
+        data: {
+          id: "ASSET-10105",
+          type: "streetlight",
+          name: "Ward 4 Solar Streetlight Array",
+          location: "Ward 4 Main Street, Rampur",
+          district: "Rampur",
+          latitude: 28.8142,
+          longitude: 79.0195,
+          condition: "Critical",
+          department: "Rural Electrification",
+        },
+      }),
+    ]);
+
+    // ==========================================
+    // PHASE 2: GOVERNMENT SCHEMES
+    // ==========================================
+    await prisma.scheme.createMany({
+      data: [
+        {
+          id: "sch_pm_kisan",
+          name: "PM-KISAN Samman Nidhi",
+          category: "Farming",
+          department: "Agriculture & Farmers Welfare",
+          eligibility: "Small and marginal farmer families with cultivable landholding up to 2 hectares.",
+          documents: JSON.stringify(["Aadhaar Card", "Land Ownership Record (Khatauni)", "Bank Passbook"]),
+          officialUrl: "https://pmkisan.gov.in",
+          minAge: 18,
+          maxAge: 75,
+          incomeLimit: 250000,
+          gender: "all",
+          targetOccupation: "Farmer",
+          description: "Income support of ₹6,000 per year in three equal 4-monthly installments.",
+        },
+        {
+          id: "sch_pmjay",
+          name: "Ayushman Bharat (PM-JAY)",
+          category: "Health",
+          department: "Health & Family Welfare",
+          eligibility: "Deprived rural families identified in Socio-Economic Caste Census (SECC).",
+          documents: JSON.stringify(["Aadhaar Card", "Ration Card", "Family Photo ID"]),
+          officialUrl: "https://pmjay.gov.in",
+          minAge: 0,
+          maxAge: 100,
+          incomeLimit: 150000,
+          gender: "all",
+          targetOccupation: "All Citizens",
+          description: "Health cover of ₹5 Lakh per family per year for secondary and tertiary hospitalization.",
+        },
+        {
+          id: "sch_pmay",
+          name: "Pradhan Mantri Awas Yojana (Gramin)",
+          category: "Housing",
+          department: "Rural Development",
+          eligibility: "Houseless or living in kutcha/dilapidated homes in rural areas.",
+          documents: JSON.stringify(["Aadhaar Card", "MGNREGA Job Card", "Bank Account Details"]),
+          officialUrl: "https://pmayg.nic.in",
+          minAge: 18,
+          maxAge: 80,
+          incomeLimit: 120000,
+          gender: "all",
+          targetOccupation: "Rural Citizen",
+          description: "Financial grant of ₹1.2 Lakh (plains) to ₹1.3 Lakh (hilly areas) to construct a permanent house.",
+        },
+        {
+          id: "sch_bbbp",
+          name: "Beti Bachao Beti Padhao / Sukanya Samriddhi",
+          category: "Women & Child",
+          department: "Women and Child Development",
+          eligibility: "Families with a girl child below 10 years of age.",
+          documents: JSON.stringify(["Birth Certificate of Girl Child", "Identity & Residence Proof of Parents"]),
+          officialUrl: "https://wcd.nic.in",
+          minAge: 0,
+          maxAge: 10,
+          incomeLimit: 500000,
+          gender: "female",
+          targetOccupation: "Parent / Guardian",
+          description: "High-interest savings scheme with tax exemptions aimed at girl child education and welfare.",
+        },
+        {
+          id: "sch_nsap",
+          name: "National Social Assistance Programme (NSAP) Pension",
+          category: "Poverty / Pension",
+          department: "Rural Development",
+          eligibility: "Senior citizens age 60+ belonging to BPL households.",
+          documents: JSON.stringify(["Age Proof", "BPL Ration Card", "Bank Account Details"]),
+          officialUrl: "https://nsap.nic.in",
+          minAge: 60,
+          maxAge: 110,
+          incomeLimit: 60000,
+          gender: "all",
+          targetOccupation: "Senior Citizen",
+          description: "Monthly pension of ₹500 to ₹1000 directly transferred to eligible senior citizens.",
+        },
+      ],
+    });
+
+    // ==========================================
+    // PHASE 2: PUBLIC DEVELOPMENT FUNDS
+    // ==========================================
+    await prisma.projectFund.createMany({
+      data: [
+        {
+          id: "fund_1",
+          title: "Rampur Solar Streetlight Installation Phase II",
+          department: "Rural Electrification",
+          allocatedAmount: 4500000,
+          spentAmount: 3375000,
+          status: "In Progress",
+          progressPercent: 75,
+          location: "Ward 1 to Ward 6, Rampur",
+          district: "Rampur",
+          latitude: 28.812,
+          longitude: 79.022,
+          discrepancyReports: 1,
+        },
+        {
+          id: "fund_2",
+          title: "Canal Desilting & Irrigation Feeder Line B",
+          department: "Irrigation & Water Resources",
+          allocatedAmount: 2800000,
+          spentAmount: 1120000,
+          status: "In Progress",
+          progressPercent: 40,
+          location: "Agricultural Belt, Rampur",
+          district: "Rampur",
+          latitude: 28.795,
+          longitude: 79.045,
+          discrepancyReports: 0,
+        },
+        {
+          id: "fund_3",
+          title: "Community Solid Waste Segregation Yard",
+          department: "Panchayati Raj & Sanitation",
+          allocatedAmount: 1600000,
+          spentAmount: 1520000,
+          status: "Completed",
+          progressPercent: 100,
+          location: "Sector 4 Outskirts, Rampur",
+          district: "Rampur",
+          latitude: 28.825,
+          longitude: 79.015,
+          discrepancyReports: 0,
+        },
+      ],
+    });
+
+    // ==========================================
+    // PHASE 2: BLOOD BANK ASSISTANCE
+    // ==========================================
+    await prisma.bloodRequest.createMany({
+      data: [
+        {
+          id: "bld_1",
+          patientName: "Emergency Trauma Victim",
+          bloodGroup: "O+",
+          urgency: "Emergency / Immediate",
+          unitsNeeded: 2,
+          hospital: "District Civil Hospital, Blood Bank Wing",
+          location: "Civil Lines, Rampur",
+          district: "Rampur",
+          contactPhone: "9876543200",
+          status: "matched",
+          matchedDonorsCount: 3,
+          remarks: "Cross-matching confirmed with local donor pool. Ambulance unit en route with unit.",
+        },
+        {
+          id: "bld_2",
+          patientName: "Dialysis Patient (Scheduled)",
+          bloodGroup: "B+",
+          urgency: "Urgent / 24 Hours",
+          unitsNeeded: 1,
+          hospital: "Mandya Taluk Hospital",
+          location: "Mandya District Hub",
+          district: "Mandya",
+          contactPhone: "9876543230",
+          status: "open",
+          matchedDonorsCount: 1,
+          remarks: "Awaiting secondary donor confirmation.",
+        },
+      ],
+    });
+
+    // ==========================================
+    // PHASE 2: SPECIALIZED MODULE COMPLAINTS
+    // ==========================================
+    // 1. PDS Ration Discrepancy
+    const pdsComplaint = await prisma.complaint.create({
+      data: {
+        id: "cmp_pds_1",
+        userId: citizenRampur.id,
+        title: "Under-Distribution of Wheat Quota at Fair Price Shop #12",
+        category: "Public Safety",
+        subcategory: "PDS_QUANTITY_DISCREPANCY",
+        assignedDepartment: "Food & Civil Supplies",
+        urgency: "High",
+        priority: "High",
+        description: "Dealer charged full price for 35kg quota but only dispensed 31kg. Refused to issue printed POS receipt citing server error.",
+        detectedTags: JSON.stringify(["#pds", "#ration", "#shortage"]),
+        recommendedAuthority: "Food & Civil Supplies Inspector, Rampur",
+        riskScore: 78,
+        location: "Market Road, Rampur",
+        district: "Rampur",
+        latitude: 28.8055,
+        longitude: 79.0211,
+        assetId: "ASSET-10104",
+        status: "in_investigation",
+        metaData: JSON.stringify({
+          shopId: "FPS-12",
+          commodity: "Wheat",
+          expectedQtyKg: 35,
+          receivedQtyKg: 31,
+          shortageKg: 4,
+          receiptProvided: false,
+        }),
+      },
+    });
+
+    await prisma.timeline.create({
+      data: {
+        complaintId: pdsComplaint.id,
+        action: "SUBMITTED",
+        performedBy: citizenRampur.name,
+        performedById: citizenRampur.id,
+        role: "citizen",
+        remarks: "PDS discrepancy logged with photographic evidence of scale reading.",
+      },
+    });
+
+    // 2. Clean Community Sanitation Hotspot
+    const cleanComplaint = await prisma.complaint.create({
+      data: {
+        id: "cmp_clean_1",
+        userId: citizenRampur.id,
+        title: "Major Solid Waste Accumulation & Drain Blockage near Ward 4",
+        category: "Sanitation",
+        subcategory: "SANITATION_DUMPING",
+        assignedDepartment: "Sanitation & Public Health",
+        urgency: "Critical",
+        priority: "Urgent",
+        description: "Municipal waste has not been collected for 5 days. Overflowing into the primary open stormwater drain causing foul stench and mosquito breeding.",
+        detectedTags: JSON.stringify(["#garbage", "#drain_clog", "#sanitation_hotspot"]),
+        recommendedAuthority: "Sanitation Officer, Rampur Municipality",
+        riskScore: 88,
+        location: "Ward 4 Market Lane, Rampur",
+        district: "Rampur",
+        latitude: 28.8145,
+        longitude: 79.0198,
+        assetId: "ASSET-10105",
+        status: "submitted",
+        metaData: JSON.stringify({
+          hotspotCluster: "HOTSPOT-RAMPUR-WARD4",
+          reportCount: 6,
+          severityRank: "RED_CRITICAL",
+        }),
+      },
+    });
+
+    await prisma.timeline.create({
+      data: {
+        complaintId: cleanComplaint.id,
+        action: "SUBMITTED",
+        performedBy: citizenRampur.name,
+        performedById: citizenRampur.id,
+        role: "citizen",
+        remarks: "Sanitation crisis report logged into village hotspot cluster.",
+      },
+    });
+
+    // 3. SafeLine Confidential Case (Women & Child Protection)
+    const safelineComplaint = await prisma.complaint.create({
+      data: {
+        id: "cmp_safe_1",
+        userId: citizenWomen.id,
+        title: "SafeLine Protection: Persistent Harassment on Unlit Bus Stand Route",
+        category: "Public Safety",
+        subcategory: "SAFELINE_HARASSMENT",
+        assignedDepartment: "Women & Child Safety Cell",
+        urgency: "Critical",
+        priority: "Emergency",
+        description: "Group of individuals routinely gathering around the unlit stretch near the Panchayat school bus stand during evening commute hours.",
+        detectedTags: JSON.stringify(["#safeline", "#women_safety", "#patrol_request"]),
+        recommendedAuthority: "District Women Welfare Protection Officer",
+        riskScore: 92,
+        location: "Protected Corridor (Zone 4)",
+        district: "Rampur",
+        latitude: 28.8125,
+        longitude: 79.0205,
+        isSafeLine: true,
+        isAnonymous: true,
+        status: "in_investigation",
+        metaData: JSON.stringify({
+          safeLineCategory: "unsafe_location",
+          privacyLevel: "STRICT_CONFIDENTIAL",
+          authorisedOfficerAssigned: "Welfare Officer Meenakshi Rao",
+        }),
+      },
+    });
+
+    await prisma.timeline.create({
+      data: {
+        complaintId: safelineComplaint.id,
+        action: "SUBMITTED",
+        performedBy: "Citizen (Identity Protected)",
+        role: "citizen",
+        remarks: "Confidential SafeLine intake routed to authorized officer queue. Excluded from public views.",
+      },
+    });
+
     // Sync sqlite db to both root and prisma dir for consistency
     const rootDb = path.join(process.cwd(), "dev.db");
     const prismaDir = path.join(process.cwd(), "prisma");
@@ -882,6 +1306,9 @@ async function main() {
   console.log("  Volunteer (Shivam.): 9876543223 (Sowmya Red Cross - Verified)");
   console.log("  Authority (Rampur):  9876543213 (Officer Suresh Verma)");
   console.log("  Authority (Mandya):  9876543224 (Officer Mallikarjun Patil)");
+  console.log("  Citizen (Women Hub): 9876543260 (Sunita Devi - SafeLine)");
+  console.log("  Higher Official:     9876543270 (Dr. Arvind Swaminathan - Medical & Blood Bank)");
+  console.log("  Ward Member (Sub):   9876543280 (Rajesh Kumar - Ward 4 Scope)");
   console.log("  Worker (Unverified): 9876543214 (Manoj Plumber - Gated)");
   console.log("  Volunteer (Unver.):  9876543215 (Vikas Volunteer - Gated)");
   console.log("==================================================");

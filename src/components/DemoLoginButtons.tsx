@@ -21,7 +21,7 @@ export default function DemoLoginButtons() {
   const [selectedHub, setSelectedHub] = useState<string>("all");
 
   const demoAccounts = [
-    // Super Admin
+    // Super Admin & Higher Medical Official
     {
       role: "super_admin",
       district: "Global",
@@ -34,7 +34,30 @@ export default function DemoLoginButtons() {
       badge: "State HQ Telemetry & Governance",
       isSpecial: true,
     },
-    // Authorities
+    {
+      role: "super_admin",
+      district: "Rampur",
+      title: "Higher Official (Medical & Blood Bank)",
+      name: "Dr. Arvind Swaminathan (Medical Command)",
+      phone: "9876543270",
+      icon: HeartHandshake,
+      dashboardPath: "/higher-official/dashboard",
+      accent: "text-red-400 font-extrabold",
+      badge: "District Medical Triage & Blood Bank Command",
+      isSpecial: true,
+    },
+    // Authorities & Ward Members
+    {
+      role: "authority",
+      district: "Rampur",
+      title: "Ward Member (Ward 4)",
+      name: "Rajesh Kumar (Ward 4 Member)",
+      phone: "9876543280",
+      icon: ShieldCheck,
+      dashboardPath: "/authority/dashboard",
+      accent: "text-indigo-600 font-bold",
+      badge: "Ward 4 Civic Monitoring & Hotspot Watch",
+    },
     {
       role: "authority",
       district: "Rampur",
@@ -104,6 +127,17 @@ export default function DemoLoginButtons() {
       badge: "Medical & Trauma Assistance Pool",
     },
     // Citizens
+    {
+      role: "citizen",
+      district: "Rampur",
+      title: "Women & Child Hub (SafeLine)",
+      name: "Sunita Devi (Women Protection)",
+      phone: "9876543260",
+      icon: User,
+      dashboardPath: "/citizen/women",
+      accent: "text-rose-500 font-bold",
+      badge: "Women Self-Help, SafeLine & Maternal Care",
+    },
     {
       role: "citizen",
       district: "Rampur",

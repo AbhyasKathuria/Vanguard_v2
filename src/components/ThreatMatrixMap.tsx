@@ -19,6 +19,10 @@ import {
   CheckCircle2,
   Sliders,
   ExternalLink,
+  Navigation,
+  Loader2,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 import { VulnerabilityItem } from "@/lib/types";
 import { calculateVulnerabilityIndex } from "@/lib/ai/threatEngine";
@@ -31,8 +35,10 @@ export default function ThreatMatrixMap({ initialThreats = [] }: ThreatMatrixMap
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersLayerRef = useRef<any>(null);
+  const userMarkerRef = useRef<any>(null);
 
   const [threats, setThreats] = useState<VulnerabilityItem[]>(initialThreats);
+  const [loading, setLoading] = useState(false);
   const [selectedDistrict, setSelectedDistrict] = useState<string>("all");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [selectedStatus, setSelectedStatus] = useState<string>("all");
@@ -41,9 +47,14 @@ export default function ThreatMatrixMap({ initialThreats = [] }: ThreatMatrixMap
   // Time-to-decay simulator slider (days elapsed)
   const [simulatedDays, setSimulatedDays] = useState<number>(0);
 
-  // Fetch live threats from API if not pre-provided
+  // Geolocation
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
+
+  // Fetch live threats from API
   const fetchThreats = async () => {
     try {
+      setLoading(true);
       const res = await fetch("/api/threats");
       if (res.ok) {
         const data = await res.json();
@@ -53,6 +64,8 @@ export default function ThreatMatrixMap({ initialThreats = [] }: ThreatMatrixMap
       }
     } catch (err) {
       console.warn("Failed to fetch threat matrix data:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -61,6 +74,65 @@ export default function ThreatMatrixMap({ initialThreats = [] }: ThreatMatrixMap
       fetchThreats();
     }
   }, []);
+
+  // Current GPS location
+  const handleGetCurrentLocation = () => {
+    setLocationError(null);
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      setLocationError("Geolocation is not supported by your browser.");
+      return;
+    }
+
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        setLocating(false);
+        const { latitude, longitude } = pos.coords;
+
+        if (mapInstanceRef.current) {
+          const L = (await import("leaflet")).default;
+          mapInstanceRef.current.setView([latitude, longitude], 15);
+
+          if (userMarkerRef.current) {
+            mapInstanceRef.current.removeLayer(userMarkerRef.current);
+          }
+
+          const pulseIcon = L.divIcon({
+            className: "custom-threat-user-pulse",
+            html: `
+              <div style="position: relative; width: 26px; height: 26px;">
+                <div style="position: absolute; inset: -10px; border-radius: 9999px; background: rgba(0, 113, 227, 0.35); animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+                <div style="width: 26px; height: 26px; border-radius: 9999px; background: #0071E3; border: 3.5px solid #ffffff; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);"></div>
+              </div>
+            `,
+            iconSize: [26, 26],
+            iconAnchor: [13, 13],
+          });
+
+          const marker = L.marker([latitude, longitude], { icon: pulseIcon }).addTo(mapInstanceRef.current);
+          marker.bindPopup(`
+            <div style="font-family: sans-serif; font-size: 13px; font-weight: bold; color: #111; padding: 3px;">
+              📍 You Are Here • आपका वर्तमान स्थान<br/>
+              <span style="font-size: 11px; font-weight: normal; color: #555;">
+                GPS: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}
+              </span>
+            </div>
+          `).openPopup();
+
+          userMarkerRef.current = marker;
+        }
+      },
+      (err) => {
+        setLocating(false);
+        if (err.code === err.PERMISSION_DENIED) {
+          setLocationError("Location permission denied. Please allow location access in browser settings.");
+        } else {
+          setLocationError("Could not detect GPS position. Please try again.");
+        }
+      },
+      { enableHighAccuracy: true, timeout: 12000 }
+    );
+  };
 
   // Filtered threats list with live dynamic decay recalculation
   const filteredThreats = threats
@@ -94,7 +166,6 @@ export default function ThreatMatrixMap({ initialThreats = [] }: ThreatMatrixMap
       try {
         const L = (await import("leaflet")).default;
 
-        // Ensure leaflet css is present
         if (!document.getElementById("leaflet-css")) {
           const link = document.createElement("link");
           link.id = "leaflet-css";
@@ -104,7 +175,7 @@ export default function ThreatMatrixMap({ initialThreats = [] }: ThreatMatrixMap
         }
 
         if (!mapInstanceRef.current && mapContainerRef.current) {
-          const defaultCenter = [24.5, 78.5]; // Central North India view
+          const defaultCenter = [24.5, 78.5];
           const map = L.map(mapContainerRef.current, {
             center: defaultCenter as [number, number],
             zoom: 6,
@@ -122,7 +193,6 @@ export default function ThreatMatrixMap({ initialThreats = [] }: ThreatMatrixMap
           markersLayerRef.current = L.layerGroup().addTo(map);
         }
 
-        // Re-draw markers when filteredThreats changes
         if (markersLayerRef.current && mapInstanceRef.current) {
           markersLayerRef.current.clearLayers();
 
@@ -135,7 +205,6 @@ export default function ThreatMatrixMap({ initialThreats = [] }: ThreatMatrixMap
             const markerColor =
               score >= 85 ? "#dc2626" : score >= 70 ? "#ea580c" : score >= 50 ? "#d97706" : "#16a34a";
 
-            // Pulsing circle marker
             const circle = L.circle([th.latitude, th.longitude], {
               color: markerColor,
               fillColor: markerColor,
@@ -143,7 +212,6 @@ export default function ThreatMatrixMap({ initialThreats = [] }: ThreatMatrixMap
               radius: (score / 100) * 1200,
             });
 
-            // Dot center
             const centerDot = L.circleMarker([th.latitude, th.longitude], {
               radius: 7,
               color: "#ffffff",
@@ -200,14 +268,14 @@ export default function ThreatMatrixMap({ initialThreats = [] }: ThreatMatrixMap
   return (
     <div className="space-y-6 max-w-6xl mx-auto">
       {/* Header */}
-      <div className="bg-[#262626] text-white p-6 sm:p-8 rounded-3xl border border-[#404040] shadow-sm relative overflow-hidden">
+      <div className="bg-[#1f1f1f] text-white p-6 sm:p-8 rounded-3xl border border-white/10 shadow-xl relative overflow-hidden">
         <div className="flex items-center gap-2.5 mb-2">
-          <span className="px-2.5 py-0.5 rounded-full bg-white/10 text-[11px] font-bold uppercase tracking-wider text-[#dcdcdc] border border-white/15 inline-flex items-center gap-1.5">
-            <Activity className="w-3 h-3 text-[#53bdeb]" />
+          <span className="px-3 py-1 rounded-full bg-white/10 text-xs font-bold uppercase tracking-wider text-neutral-200 border border-white/15 inline-flex items-center gap-1.5">
+            <Activity className="w-3.5 h-3.5 text-sky-400" />
             Civic Threat Matrix
           </span>
-          <span className="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold border border-amber-500/30">
-            Geographic Risk Heatmap + Time-to-Decay
+          <span className="px-2.5 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-bold border border-emerald-500/30">
+            Live Records Only
           </span>
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -215,32 +283,63 @@ export default function ThreatMatrixMap({ initialThreats = [] }: ThreatMatrixMap
             <h1 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
               Vulnerability &amp; Structural Hazard Matrix
             </h1>
-            <p className="text-xs sm:text-sm text-[#a6a6a6] mt-1 max-w-2xl leading-relaxed">
+            <p className="text-xs sm:text-sm text-neutral-300 mt-1 max-w-2xl leading-relaxed">
               Real-time spatial risk scoring combining base threat severity, population footfall density, and exponential time-to-decay deterioration rates.
             </p>
           </div>
-          <Link
-            href="/smart-complaint"
-            className="px-4 py-2.5 bg-white hover:bg-[#dcdcdc] text-[#262626] text-xs font-bold rounded-xl shadow-xs transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer"
-          >
-            <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Pin New Hazard via Vision</span>
-          </Link>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={handleGetCurrentLocation}
+              disabled={locating}
+              className="px-4 py-2.5 bg-white hover:bg-neutral-100 text-black text-xs font-extrabold rounded-xl shadow-md transition-all flex items-center gap-2 cursor-pointer disabled:opacity-60"
+            >
+              {locating ? (
+                <Loader2 className="w-4 h-4 animate-spin text-sky-600" />
+              ) : (
+                <Navigation className="w-4 h-4 text-sky-600 fill-sky-600" />
+              )}
+              <span>{locating ? "Locating..." : "📍 My Location"}</span>
+            </button>
+
+            <Link
+              href="/smart-complaint"
+              className="px-4 py-2.5 bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold rounded-xl shadow-md transition-colors shrink-0 flex items-center gap-1.5 cursor-pointer"
+            >
+              <Sparkles className="w-3.5 h-3.5 text-white" />
+              <span>Pin Hazard</span>
+            </Link>
+          </div>
         </div>
       </div>
 
+      {locationError && (
+        <div className="p-3 bg-amber-500/20 border border-amber-500/40 rounded-xl text-xs text-amber-200 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>{locationError}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setLocationError(null)}
+            className="text-amber-300 hover:text-white font-bold text-xs cursor-pointer ml-4"
+          >
+            ✕
+          </button>
+        </div>
+      )}
+
       {/* Filter & Simulator Controls Bar */}
-      <div className="bg-white p-5 rounded-2xl border border-[#dcdcdc] shadow-xs space-y-4">
+      <div className="bg-neutral-900 p-5 rounded-2xl border border-neutral-800 shadow-sm space-y-4 text-white">
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {/* District Filter */}
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#707070] mb-1">
+            <label className="block text-xs font-bold uppercase tracking-wider text-neutral-400 mb-1">
               Filter by District
             </label>
             <select
               value={selectedDistrict}
               onChange={(e) => setSelectedDistrict(e.target.value)}
-              className="w-full px-3 py-2 text-xs border border-[#dcdcdc] rounded-xl outline-none bg-[#f5f5f5] text-[#404040]"
+              className="w-full px-3 py-2.5 text-xs border border-neutral-700 rounded-xl outline-none bg-neutral-950 text-white focus:border-sky-500"
             >
               <option value="all">All Districts</option>
               <option value="Rampur">Rampur District (UP)</option>
@@ -250,15 +349,14 @@ export default function ThreatMatrixMap({ initialThreats = [] }: ThreatMatrixMap
             </select>
           </div>
 
-          {/* Category Filter */}
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#707070] mb-1">
+            <label className="block text-xs font-bold uppercase tracking-wider text-neutral-400 mb-1">
               Hazard Domain
             </label>
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="w-full px-3 py-2 text-xs border border-[#dcdcdc] rounded-xl outline-none bg-[#f5f5f5] text-[#404040]"
+              className="w-full px-3 py-2.5 text-xs border border-neutral-700 rounded-xl outline-none bg-neutral-950 text-white focus:border-sky-500"
             >
               <option value="all">All Domains</option>
               <option value="Structural">Structural (Bridges, Walls)</option>
@@ -269,15 +367,14 @@ export default function ThreatMatrixMap({ initialThreats = [] }: ThreatMatrixMap
             </select>
           </div>
 
-          {/* Status Filter */}
           <div>
-            <label className="block text-[11px] font-bold uppercase tracking-wider text-[#707070] mb-1">
+            <label className="block text-xs font-bold uppercase tracking-wider text-neutral-400 mb-1">
               Mitigation Status
             </label>
             <select
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full px-3 py-2 text-xs border border-[#dcdcdc] rounded-xl outline-none bg-[#f5f5f5] text-[#404040]"
+              className="w-full px-3 py-2.5 text-xs border border-neutral-700 rounded-xl outline-none bg-neutral-950 text-white focus:border-sky-500"
             >
               <option value="all">All Statuses</option>
               <option value="active">Active Threat</option>
@@ -288,13 +385,13 @@ export default function ThreatMatrixMap({ initialThreats = [] }: ThreatMatrixMap
         </div>
 
         {/* Time-to-Decay Interactive Simulator Slider */}
-        <div className="p-3.5 rounded-xl bg-[#f9f9f9] border border-[#dcdcdc] space-y-2">
+        <div className="p-3.5 rounded-xl bg-neutral-950 border border-neutral-800 space-y-2">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-[#262626] flex items-center gap-1.5">
-              <Clock className="w-3.5 h-3.5 text-amber-600" />
+            <span className="text-xs font-bold text-white flex items-center gap-1.5">
+              <Clock className="w-3.5 h-3.5 text-amber-500" />
               Time-to-Decay Urgency Simulator (Days Left Unaddressed):
             </span>
-            <span className="font-mono text-xs font-black text-red-600 bg-red-50 px-2 py-0.5 rounded border border-red-200">
+            <span className="font-mono text-xs font-black text-red-400 bg-red-950/80 px-2 py-0.5 rounded border border-red-800">
               +{simulatedDays} Days Delay
             </span>
           </div>
@@ -305,9 +402,9 @@ export default function ThreatMatrixMap({ initialThreats = [] }: ThreatMatrixMap
             step="5"
             value={simulatedDays}
             onChange={(e) => setSimulatedDays(Number(e.target.value))}
-            className="w-full accent-[#262626] cursor-pointer"
+            className="w-full accent-sky-500 cursor-pointer"
           />
-          <div className="flex justify-between text-[10px] text-[#707070] font-mono">
+          <div className="flex justify-between text-[10px] text-neutral-400 font-mono">
             <span>Day 0 (Initial Report)</span>
             <span>Day 15 (+25% Urgency)</span>
             <span>Day 30 (+60% Critical Deterioration)</span>
@@ -319,21 +416,41 @@ export default function ThreatMatrixMap({ initialThreats = [] }: ThreatMatrixMap
       {/* Map & Detail Split View */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Left Map View */}
-        <div className="lg:col-span-7 bg-white p-4 rounded-3xl border border-[#dcdcdc] shadow-xs space-y-3">
+        <div className="lg:col-span-7 bg-neutral-900 p-4 rounded-3xl border border-neutral-800 shadow-sm space-y-3 relative">
           <div className="flex items-center justify-between px-2">
-            <span className="text-xs font-bold uppercase tracking-wider text-[#707070] flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5" />
-              Geographic Hazard Heatmap ({filteredThreats.length} Points)
+            <span className="text-xs font-bold uppercase tracking-wider text-neutral-300 flex items-center gap-1.5">
+              <MapPin className="w-3.5 h-3.5 text-rose-400" />
+              Live Hazard Map ({filteredThreats.length} Points)
             </span>
-            <span className="text-[11px] text-[#a6a6a6]">OpenStreetMap Live Cluster</span>
+            <button
+              type="button"
+              onClick={fetchThreats}
+              className="text-[11px] text-sky-400 hover:underline flex items-center gap-1 cursor-pointer"
+            >
+              <RefreshCw className={`w-3 h-3 ${loading ? "animate-spin" : ""}`} />
+              <span>Refresh</span>
+            </button>
           </div>
 
           <div
             ref={mapContainerRef}
-            className="w-full h-[400px] rounded-2xl overflow-hidden border border-[#dcdcdc] shadow-inner bg-[#eaeaea]"
+            className="w-full h-[400px] rounded-2xl overflow-hidden border border-neutral-800 shadow-inner bg-neutral-950 relative"
           />
 
-          <div className="flex flex-wrap items-center justify-between text-[11px] text-[#707070] px-2 pt-1 gap-2">
+          {/* Clean Empty State */}
+          {!loading && filteredThreats.length === 0 && (
+            <div className="absolute inset-x-8 top-28 z-20 max-w-sm mx-auto p-5 rounded-2xl bg-black/90 border border-neutral-700 text-center shadow-2xl backdrop-blur-md space-y-2">
+              <div className="w-10 h-10 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-5 h-5 stroke-[2.5]" />
+              </div>
+              <h4 className="text-sm font-bold text-white">All Structures Normal</h4>
+              <p className="text-xs text-neutral-300 leading-relaxed">
+                No active vulnerabilities or structural decay threats recorded in {selectedDistrict === "all" ? "the monitored areas" : `${selectedDistrict} District`}.
+              </p>
+            </div>
+          )}
+
+          <div className="flex flex-wrap items-center justify-between text-[11px] text-neutral-400 px-2 pt-1 gap-2">
             <span className="flex items-center gap-1.5">
               <span className="w-2.5 h-2.5 rounded-full bg-red-600" /> Critical (&gt;85)
             </span>
@@ -350,81 +467,69 @@ export default function ThreatMatrixMap({ initialThreats = [] }: ThreatMatrixMap
         </div>
 
         {/* Right Hazard Queue Cards */}
-        <div className="lg:col-span-5 bg-white p-5 rounded-3xl border border-[#dcdcdc] shadow-xs space-y-4 flex flex-col justify-between">
+        <div className="lg:col-span-5 bg-neutral-900 p-5 rounded-3xl border border-neutral-800 shadow-sm space-y-4 flex flex-col justify-between text-white">
           <div>
-            <div className="flex items-center justify-between border-b border-[#dcdcdc] pb-3 mb-3">
-              <span className="text-xs font-bold uppercase tracking-wider text-[#707070]">
+            <div className="flex items-center justify-between border-b border-neutral-800 pb-3 mb-3">
+              <span className="text-xs font-bold uppercase tracking-wider text-neutral-400">
                 Prioritized Action Queue
               </span>
-              <span className="text-[11px] font-bold text-red-600">Ranked by Threat Index</span>
+              <span className="text-[11px] font-bold text-rose-400">Live DB Records</span>
             </div>
 
-            <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1 scrollbar-thin">
-              {filteredThreats.map((th) => {
-                const isSelected = selectedThreat?.id === th.id;
-                const score = th.computedRiskIndex || th.threatScore;
-                return (
-                  <div
-                    key={th.id}
-                    onClick={() => setSelectedThreat(th)}
-                    className={`p-3.5 rounded-2xl border transition-all cursor-pointer ${
-                      isSelected
-                        ? "bg-[#262626] text-white border-black shadow-xs"
-                        : "bg-[#f9f9f9] hover:bg-[#eaeaea] border-[#dcdcdc]"
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2 mb-1">
-                      <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded border ${
-                        isSelected ? "bg-white/20 text-white border-white/30" : "bg-white text-[#404040] border-[#dcdcdc]"
-                      }`}>
-                        {th.category}
-                      </span>
-                      <span className={`text-xs font-black px-2 py-0.5 rounded-lg border ${getSeverityBadge(score)}`}>
-                        {score}/100
-                      </span>
-                    </div>
+            {filteredThreats.length === 0 ? (
+              <div className="p-8 text-center text-xs text-neutral-400 space-y-2">
+                <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto" />
+                <p className="font-semibold text-white">Zero Active Threats</p>
+                <p>No critical civic infrastructure issues require immediate mitigation.</p>
+              </div>
+            ) : (
+              <div className="space-y-2.5 max-h-[350px] overflow-y-auto pr-1">
+                {filteredThreats.map((th) => {
+                  const score = th.computedRiskIndex || th.threatScore;
+                  const isSelected = selectedThreat?.id === th.id;
 
-                    <h4 className={`text-xs font-bold leading-tight ${isSelected ? "text-white" : "text-[#262626]"}`}>
-                      {th.title}
-                    </h4>
-                    <p className={`text-[11px] mt-1 ${isSelected ? "text-[#dcdcdc]" : "text-[#707070]"}`}>
-                      📍 {th.location} ({th.district})
-                    </p>
-
-                    <div className="flex items-center justify-between text-[10px] opacity-75 mt-2 pt-1 border-t border-current/10">
-                      <span>👥 ~{th.affectedEstimate} civilians affected</span>
-                      <span className="capitalize">{th.status}</span>
+                  return (
+                    <div
+                      key={th.id}
+                      onClick={() => {
+                        setSelectedThreat(th);
+                        if (th.latitude && th.longitude && mapInstanceRef.current) {
+                          mapInstanceRef.current.panTo([th.latitude, th.longitude]);
+                        }
+                      }}
+                      className={`p-3 rounded-2xl border transition-all cursor-pointer ${
+                        isSelected
+                          ? "bg-neutral-800 border-sky-500 shadow-md"
+                          : "bg-neutral-950 hover:bg-neutral-850 border-neutral-800 text-neutral-200"
+                      }`}
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <span className="text-xs font-black text-white line-clamp-1">{th.title}</span>
+                        <span
+                          className={`text-[10px] font-black px-2 py-0.5 rounded-full border shrink-0 ${getSeverityBadge(
+                            score
+                          )}`}
+                        >
+                          {score.toFixed(0)} / 100
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2 text-[11px] text-neutral-400 mt-1">
+                        <MapPin className="w-3 h-3 text-neutral-500" />
+                        <span className="truncate">
+                          {th.location} ({th.district})
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                );
-              })}
-            </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
-          {/* Selected Threat Detailed Mitigation Drawer */}
-          {selectedThreat && (
-            <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-amber-950 text-xs space-y-2 mt-2">
-              <div className="flex items-center justify-between">
-                <span className="font-bold flex items-center gap-1.5 text-amber-900">
-                  <AlertTriangle className="w-3.5 h-3.5 text-amber-600" />
-                  Proposed Mitigation Plan
-                </span>
-                <span className="text-[10px] font-mono text-amber-800">
-                  Decay Rate: {selectedThreat.decayFactor}x/mo
-                </span>
-              </div>
-              <p className="text-[11px] text-amber-900 leading-relaxed font-medium">
-                {selectedThreat.mitigationPlan || "Engineering survey and perimeter barricade deployment required."}
-              </p>
-              <button
-                type="button"
-                onClick={() => alert(`Mobilizing engineering inspection squad for: ${selectedThreat.title}`)}
-                className="w-full py-1.5 px-3 bg-amber-800 hover:bg-amber-900 text-white font-bold text-xs rounded-xl shadow-xs transition-colors cursor-pointer"
-              >
-                Deploy Civil Mitigation Squad
-              </button>
-            </div>
-          )}
+          <div className="pt-3 border-t border-neutral-800 flex items-center justify-between text-xs text-neutral-400">
+            <span>Dynamic Decay: exponential</span>
+            <span className="font-bold text-white">VANGUARD AI Engine</span>
+          </div>
         </div>
       </div>
     </div>

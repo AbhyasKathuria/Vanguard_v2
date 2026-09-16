@@ -107,14 +107,12 @@ export default function AuthForm({ initialMode = "login", prefilledPhone = "" }:
         return;
       }
 
-      const role = data.user?.role;
-      let targetUrl = "/citizen/dashboard";
-      if (role === "super_admin" || role === "admin") targetUrl = "/superadmin/dashboard";
-      else if (role === "worker") targetUrl = "/worker/dashboard";
-      else if (role === "volunteer") targetUrl = "/volunteer/dashboard";
-      else if (role === "authority" || role === "higher_authority") targetUrl = "/authority/dashboard";
+      if (data.isNewUser || initialMode === "signup") {
+        window.location.href = "/onboarding/role";
+        return;
+      }
 
-      window.location.href = targetUrl;
+      window.location.href = "/dashboard";
     } catch (err) {
       console.error("OTP verify error:", err);
       setError("Network error verifying code. Please try again.");

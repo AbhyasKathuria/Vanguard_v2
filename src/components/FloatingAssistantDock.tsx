@@ -9,7 +9,15 @@ export default function FloatingAssistantDock() {
   const pathname = usePathname();
   const { locale, t } = useLanguage();
 
-  if (pathname === '/') return null;
+  if (
+    pathname === '/' ||
+    pathname === '/login' ||
+    pathname === '/signup' ||
+    pathname.startsWith('/auth/') ||
+    pathname.startsWith('/onboarding')
+  ) {
+    return null;
+  }
 
   const langFlags: Record<string, string> = {
     en: '🇬🇧',

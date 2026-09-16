@@ -64,15 +64,22 @@ export function LanguageProvider({
   useEffect(() => {
     // Check localStorage or cookie if available on client
     const saved = localStorage.getItem("vanguard_locale") as LanguageLocale;
-    if (saved) {
+    const effectiveLocale = saved || initialLocale;
+    if (saved && saved !== locale) {
       setLocaleState(saved);
+      document.cookie = `vanguard_locale=${saved}; path=/; max-age=31536000; SameSite=Lax`;
     }
-  }, []);
+    const info = getLanguageInfo(effectiveLocale);
+    if (typeof document !== "undefined") {
+      document.documentElement.dir = info.direction || "ltr";
+      document.documentElement.lang = effectiveLocale;
+    }
+  }, [initialLocale]);
 
   const setLocale = async (newLocale: LanguageLocale) => {
     setLocaleState(newLocale);
     localStorage.setItem("vanguard_locale", newLocale);
-    document.cookie = `vanguard_locale=${newLocale}; path=/; max-age=31536000`;
+    document.cookie = `vanguard_locale=${newLocale}; path=/; max-age=31536000; SameSite=Lax`;
 
     // Set document direction for RTL languages like Arabic & Urdu
     const info = getLanguageInfo(newLocale);

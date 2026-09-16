@@ -120,7 +120,7 @@ export async function getCurrentUser(): Promise<UserSession | null> {
       name: payload.name || "User",
       phone: payload.phone || "",
       role: (payload.role as UserRole) || "citizen",
-      language: "en",
+      language: payload.language || "en",
       location: payload.location || "Rampur",
       district: payload.district || "Rampur",
       active: true,

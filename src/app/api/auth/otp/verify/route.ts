@@ -55,6 +55,9 @@ export async function POST(request: Request) {
       },
     });
 
+    // Check if new user
+    const isNewUser = !user;
+
     // Create user if not existing
     if (!user) {
       const allowedRoles = ["citizen", "volunteer", "worker"];
@@ -120,19 +123,23 @@ export async function POST(request: Request) {
       name: user.name,
       phone: user.phone,
       role: user.role as UserRole,
+      language: user.language || "en",
       location: user.location,
       district: user.district || user.location,
+      citizenProfile: user.citizenProfile || "general",
     });
 
     return NextResponse.json({
       success: true,
       message: "Authentication successful.",
+      isNewUser,
       user: {
         id: user.id,
         name: user.name,
         phone: user.phone,
         email: user.email,
         role: user.role,
+        citizenProfile: user.citizenProfile || "general",
         location: user.location,
         district: user.district,
       },

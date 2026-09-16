@@ -135,8 +135,14 @@ export default function AppShell({ user, children }: AppShellProps) {
     }`;
   };
 
-  // Full-screen minimalist landing experience on root "/"
-  if (pathname === "/") {
+  // Full-screen minimalist layout for landing, auth, and onboarding
+  if (
+    pathname === "/" ||
+    pathname === "/login" ||
+    pathname === "/signup" ||
+    pathname.startsWith("/auth/") ||
+    pathname.startsWith("/onboarding")
+  ) {
     return <main className="min-h-screen bg-black text-white">{children}</main>;
   }
 

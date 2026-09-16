@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState, useRef, useEffect } from "react";
+import { useLanguage } from "@/lib/i18n/context";
 import {
   MessageSquare,
   X,
@@ -72,13 +73,20 @@ const SUGGESTED_QUERIES: Record<string, string[]> = {
 };
 
 export default function RegionalAIChatbot() {
+  const { locale, setLocale } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
   const [isExpanded, setIsExpanded] = useState(false);
-  const [currentLocale, setCurrentLocale] = useState("en");
+  const [currentLocale, setCurrentLocale] = useState(locale || "en");
   const [ttsEnabled, setTtsEnabled] = useState(true);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [isListening, setIsListening] = useState(false);
+
+  useEffect(() => {
+    if (locale && locale !== currentLocale) {
+      setCurrentLocale(locale);
+    }
+  }, [locale]);
 
   const activeLang = SUPPORTED_LANGUAGES.find((l) => l.code === currentLocale) || SUPPORTED_LANGUAGES[0];
 
@@ -111,6 +119,7 @@ export default function RegionalAIChatbot() {
   // Handle language change
   const handleLanguageChange = (newLocale: string) => {
     setCurrentLocale(newLocale);
+    setLocale(newLocale);
     const newLang = SUPPORTED_LANGUAGES.find((l) => l.code === newLocale) || SUPPORTED_LANGUAGES[0];
     setMessages((prev) => [
       ...prev,

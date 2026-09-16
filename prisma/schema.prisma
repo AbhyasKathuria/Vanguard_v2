@@ -83,6 +83,10 @@ model Request {
   user         User            @relation("CitizenRequests", fields: [userId], references: [id], onDelete: Cascade)
   assignedTo   User?           @relation("AssignedRequests", fields: [assignedToId], references: [id])
   updates      RequestUpdate[]
+
+  @@index([userId, status])
+  @@index([district, status])
+  @@index([createdAt])
 }
 
 model RequestUpdate {
@@ -137,6 +141,12 @@ model Complaint {
   evidence             Evidence[]
   timeline             Timeline[]
   resolutions          Resolution[]
+
+  @@index([userId, status])
+  @@index([district, category])
+  @@index([urgency, status])
+  @@index([isSafeLine])
+  @@index([createdAt])
 }
 
 model AdministrativeDivision {
@@ -183,6 +193,9 @@ model TaskAssignment {
 
   complaint    Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
   volunteer    User?     @relation(fields: [volunteerId], references: [id])
+
+  @@index([complaintId, status])
+  @@index([volunteerId, status])
 }
 
 model Vulnerability {
@@ -204,6 +217,9 @@ model Vulnerability {
   reportedBy        String?  @default("AI Threat Engine")
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
+
+  @@index([district, status])
+  @@index([threatScore])
 }
 
 model CallLog {
@@ -274,6 +290,8 @@ model Timeline {
   timestamp     DateTime  @default(now())
 
   complaint     Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+
+  @@index([complaintId, timestamp])
 }
 
 model Resolution {
@@ -339,6 +357,8 @@ model BloodRequest {
   remarks            String?
   createdAt          DateTime @default(now())
   updatedAt          DateTime @updatedAt
+
+  @@index([district, status, bloodGroup])
 }
 
 model PushSubscription {
@@ -353,4 +373,7 @@ model PushSubscription {
   updatedAt DateTime @updatedAt
 
   user User? @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, role])
+  @@index([district])
 }

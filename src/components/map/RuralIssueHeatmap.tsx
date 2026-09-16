@@ -17,6 +17,8 @@ import {
   Maximize2,
   Minimize2,
   Compass,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react";
 
 interface HeatmapIncident {
@@ -60,108 +62,11 @@ function getCategoryTheme(category: string) {
   return CATEGORY_COLORS.other;
 }
 
-// Fallback seed incidents if API is empty
-const SEED_INCIDENTS: HeatmapIncident[] = [
-  {
-    id: "cm_w1",
-    title: "Primary Borewell Pump Coil Burnout",
-    category: "Water",
-    urgency: "Critical",
-    riskScore: 92,
-    location: "Ward 3, Dhamora",
-    village: "Dhamora",
-    panchayat: "Dhamora GP",
-    block: "Milak",
-    district: "Rampur",
-    latitude: 28.8154,
-    longitude: 79.025,
-    status: "submitted",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "cm_e1",
-    title: "11kV High Tension Wire Snapped on Grazing Field",
-    category: "Electricity",
-    urgency: "Critical",
-    riskScore: 98,
-    location: "Canal Bank, Saifni",
-    village: "Saifni",
-    panchayat: "Saifni GP",
-    block: "Shahabad",
-    district: "Rampur",
-    latitude: 28.5667,
-    longitude: 79.0167,
-    status: "in_investigation",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "cm_h1",
-    title: "PHC Antivenom Stock Exhausted (Snakebite Risk)",
-    category: "Health",
-    urgency: "Critical",
-    riskScore: 89,
-    location: "Main Market, Maholi",
-    village: "Maholi",
-    panchayat: "Maholi Dehat GP",
-    block: "Maholi",
-    district: "Sitapur",
-    latitude: 27.5656,
-    longitude: 80.6829,
-    status: "submitted",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "cm_r1",
-    title: "Bridge Culvert Parapet Collapsed into River",
-    category: "Roads",
-    urgency: "High",
-    riskScore: 78,
-    location: "Maddur Link Bridge, Besagarahalli",
-    village: "Besagarahalli",
-    panchayat: "Besagarahalli GP",
-    block: "Maddur",
-    district: "Mandya",
-    latitude: 12.5234,
-    longitude: 76.8973,
-    status: "submitted",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "cm_a1",
-    title: "Canal Sluice Gate Jammed — Waterlogging Paddy Fields",
-    category: "Agriculture",
-    urgency: "High",
-    riskScore: 84,
-    location: "North Distributary, Holehonnur",
-    village: "Holehonnur",
-    panchayat: "Holehonnur GP",
-    block: "Bhadravati",
-    district: "Shivamogga",
-    latitude: 13.9299,
-    longitude: 75.5681,
-    status: "in_investigation",
-    createdAt: new Date().toISOString(),
-  },
-  {
-    id: "cm_w2",
-    title: "Ruptured Drinking Water Pipeline — Water Contamination",
-    category: "Water",
-    urgency: "High",
-    riskScore: 75,
-    location: "Sector 4, Rampur City",
-    village: "Civil Lines",
-    district: "Rampur",
-    latitude: 28.821,
-    longitude: 79.031,
-    status: "submitted",
-    createdAt: new Date().toISOString(),
-  },
-];
-
 export default function RuralIssueHeatmap() {
   const mapContainerRef = useRef<HTMLDivElement>(null);
   const mapInstanceRef = useRef<any>(null);
   const markersLayerRef = useRef<any>(null);
+  const userMarkerRef = useRef<any>(null);
 
   const [incidents, setIncidents] = useState<HeatmapIncident[]>([]);
   const [loading, setLoading] = useState(true);
@@ -172,51 +77,114 @@ export default function RuralIssueHeatmap() {
   const [dispatchingId, setDispatchingId] = useState<string | null>(null);
   const [dispatchSuccess, setDispatchSuccess] = useState<string | null>(null);
 
-  // Fetch incidents
-  useEffect(() => {
-    async function loadData() {
-      try {
-        setLoading(true);
-        const res = await fetch("/api/complaints");
-        if (res.ok) {
-          const data = await res.json();
-          const items: HeatmapIncident[] = (data.complaints || [])
-            .filter((c: any) => c.latitude && c.longitude)
-            .map((c: any) => ({
-              id: c.id,
-              title: c.title,
-              category: c.category || "General",
-              priority: c.priority || "Normal",
-              urgency: c.urgency || "Moderate",
-              riskScore: c.riskScore || 50,
-              location: c.location,
-              village: c.village,
-              panchayat: c.panchayat,
-              block: c.block,
-              district: c.district || "Rampur",
-              latitude: parseFloat(c.latitude),
-              longitude: parseFloat(c.longitude),
-              status: c.status || "submitted",
-              createdAt: c.createdAt,
-            }));
+  // GPS Current Location State
+  const [locating, setLocating] = useState(false);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
-          if (items.length > 0) {
-            setIncidents(items);
-          } else {
-            setIncidents(SEED_INCIDENTS);
-          }
-        } else {
-          setIncidents(SEED_INCIDENTS);
-        }
-      } catch (err) {
-        console.warn("Using fallback seed incidents:", err);
-        setIncidents(SEED_INCIDENTS);
-      } finally {
-        setLoading(false);
+  // Fetch strictly live incidents from API (ZERO seed/demo fallback)
+  const loadData = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch("/api/complaints");
+      if (res.ok) {
+        const data = await res.json();
+        const items: HeatmapIncident[] = (data.complaints || [])
+          .filter((c: any) => c.latitude && c.longitude)
+          .map((c: any) => ({
+            id: c.id,
+            title: c.title,
+            category: c.category || "General",
+            priority: c.priority || "Normal",
+            urgency: c.urgency || "Moderate",
+            riskScore: c.riskScore || 50,
+            location: c.location,
+            village: c.village,
+            panchayat: c.panchayat,
+            block: c.block,
+            district: c.district || "Rampur",
+            latitude: parseFloat(c.latitude),
+            longitude: parseFloat(c.longitude),
+            status: c.status || "submitted",
+            createdAt: c.createdAt,
+          }));
+
+        setIncidents(items);
+      } else {
+        setIncidents([]);
       }
+    } catch (err) {
+      console.warn("Could not load live complaints:", err);
+      setIncidents([]);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  useEffect(() => {
     loadData();
   }, []);
+
+  // GPS Current Location Action
+  const handleGetCurrentLocation = () => {
+    setLocationError(null);
+    if (typeof window === "undefined" || !navigator.geolocation) {
+      setLocationError("Geolocation is not supported by your browser.");
+      return;
+    }
+
+    setLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        setLocating(false);
+        const { latitude, longitude } = pos.coords;
+
+        if (mapInstanceRef.current) {
+          const L = (await import("leaflet")).default;
+          mapInstanceRef.current.setView([latitude, longitude], 15);
+
+          if (userMarkerRef.current) {
+            mapInstanceRef.current.removeLayer(userMarkerRef.current);
+          }
+
+          // Pulsing user indicator
+          const pulseIcon = L.divIcon({
+            className: "custom-user-gps-pulse",
+            html: `
+              <div style="position: relative; width: 26px; height: 26px;">
+                <div style="position: absolute; inset: -10px; border-radius: 9999px; background: rgba(0, 113, 227, 0.35); animation: ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite;"></div>
+                <div style="width: 26px; height: 26px; border-radius: 9999px; background: #0071E3; border: 3.5px solid #ffffff; box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);"></div>
+              </div>
+            `,
+            iconSize: [26, 26],
+            iconAnchor: [13, 13],
+          });
+
+          const marker = L.marker([latitude, longitude], { icon: pulseIcon }).addTo(mapInstanceRef.current);
+          marker.bindPopup(`
+            <div style="font-family: sans-serif; font-size: 13px; font-weight: bold; color: #111; padding: 3px;">
+              📍 You Are Here • आपका वर्तमान स्थान<br/>
+              <span style="font-size: 11px; font-weight: normal; color: #555;">
+                GPS: ${latitude.toFixed(4)}, ${longitude.toFixed(4)}
+              </span>
+            </div>
+          `).openPopup();
+
+          userMarkerRef.current = marker;
+        }
+      },
+      (err) => {
+        setLocating(false);
+        if (err.code === err.PERMISSION_DENIED) {
+          setLocationError("Location permission denied. Please enable GPS / location permissions in your browser to pinpoint your village.");
+        } else if (err.code === err.POSITION_UNAVAILABLE) {
+          setLocationError("GPS signal unavailable. Please ensure location services are enabled on your device.");
+        } else {
+          setLocationError("Could not retrieve current location. Please try again.");
+        }
+      },
+      { enableHighAccuracy: true, timeout: 12000 }
+    );
+  };
 
   // Filtered incidents
   const filteredIncidents = incidents.filter((inc) => {
@@ -260,7 +228,7 @@ export default function RuralIssueHeatmap() {
 
           L.control.zoom({ position: "topright" }).addTo(map);
 
-          // MapTiler key: FFz6XYIUl8sR73ixvbvM
+          // MapTiler key
           const maptilerUrl =
             "https://api.maptiler.com/maps/streets-v2/{z}/{x}/{y}.png?key=FFz6XYIUl8sR73ixvbvM";
 
@@ -271,7 +239,6 @@ export default function RuralIssueHeatmap() {
           });
 
           tileLayer.on("tileerror", () => {
-            // Fallback to OSM if key rate-limits
             L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
               maxZoom: 19,
             }).addTo(map);
@@ -294,7 +261,6 @@ export default function RuralIssueHeatmap() {
             const theme = getCategoryTheme(inc.category);
             const isHighRisk = (inc.riskScore || 50) >= 80;
 
-            // Circle marker with thematic color
             const circle = L.circleMarker([inc.latitude, inc.longitude], {
               radius: isHighRisk ? 12 : 9,
               color: theme.border,
@@ -303,7 +269,6 @@ export default function RuralIssueHeatmap() {
               weight: 3,
             });
 
-            // Outer pulsing ring for critical/emergency
             if (isHighRisk) {
               const pulse = L.circle([inc.latitude, inc.longitude], {
                 radius: 400,
@@ -349,12 +314,7 @@ export default function RuralIssueHeatmap() {
       const res = await fetch("/api/emergency/auto-dispatch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          incidentId: incident.id,
-          latitude: incident.latitude,
-          longitude: incident.longitude,
-          type: "complaint",
-        }),
+        body: JSON.stringify({ complaintId: incident.id }),
       });
 
       const data = await res.json();
@@ -375,47 +335,76 @@ export default function RuralIssueHeatmap() {
 
   return (
     <div
-      className={`relative bg-[#171717] rounded-2xl border border-white/10 overflow-hidden shadow-2xl transition-all ${
+      className={`relative bg-[#171717] rounded-3xl border border-white/10 overflow-hidden shadow-2xl transition-all ${
         isFullscreen ? "fixed inset-0 z-50 rounded-none" : "w-full"
       }`}
     >
-      {/* Header bar */}
-      <div className="bg-[#262626] border-b border-white/10 px-4 py-3 flex flex-wrap items-center justify-between gap-3">
+      {/* Top Header Bar */}
+      <div className="bg-[#262626] border-b border-white/10 px-4 py-3.5 flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-sky-500/20 border border-sky-500/30 flex items-center justify-center text-sky-400">
-            <Layers className="w-4 h-4" />
+          <div className="w-9 h-9 rounded-xl bg-sky-500/20 border border-sky-500/30 flex items-center justify-center text-sky-400 shrink-0">
+            <Layers className="w-5 h-5" />
           </div>
           <div>
             <h3 className="text-sm font-black text-white uppercase tracking-wider flex items-center gap-2">
-              Rural Thematic Issue Heatmap
+              Rural Issue &amp; Emergency Map
               <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 font-bold">
-                MapTiler High-Res
+                Live Data Only
               </span>
             </h3>
             <p className="text-xs text-neutral-400">
-              Thematic clustering by civil infrastructure & emergency domains
+              Live spatial records from citizen filings • Zero mock/demo records
             </p>
           </div>
         </div>
 
-        <div className="flex items-center gap-2">
-          {/* District filter */}
+        {/* Action Controls */}
+        <div className="flex items-center gap-2 flex-wrap">
+          {/* Dedicated High-Contrast "Current Location" Button */}
+          <button
+            type="button"
+            onClick={handleGetCurrentLocation}
+            disabled={locating}
+            className="px-3.5 py-2 rounded-xl bg-white hover:bg-neutral-100 text-black font-extrabold text-xs shadow-lg flex items-center gap-2 transition-all hover:scale-105 active:scale-95 cursor-pointer disabled:opacity-60"
+            title="Center map on my current GPS location"
+          >
+            {locating ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-sky-600" />
+            ) : (
+              <Navigation className="w-3.5 h-3.5 text-sky-600 fill-sky-600" />
+            )}
+            <span>{locating ? "Locating..." : "📍 My Location • मेरा स्थान"}</span>
+          </button>
+
+          {/* Refresh Button */}
+          <button
+            type="button"
+            onClick={loadData}
+            disabled={loading}
+            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors cursor-pointer"
+            title="Refresh Live Data"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? "animate-spin" : ""}`} />
+          </button>
+
+          {/* District Filter */}
           <select
             value={selectedDistrict}
             onChange={(e) => setSelectedDistrict(e.target.value)}
-            className="bg-[#171717] border border-white/10 text-white text-xs rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-sky-500"
+            className="bg-[#171717] border border-white/20 text-white text-xs rounded-xl px-3 py-2 focus:outline-none focus:border-sky-500"
           >
             <option value="all">All Districts</option>
-            <option value="Rampur">Rampur</option>
-            <option value="Sitapur">Sitapur</option>
-            <option value="Mandya">Mandya</option>
-            <option value="Shivamogga">Shivamogga</option>
+            <option value="Rampur">Rampur District</option>
+            <option value="Sitapur">Sitapur District</option>
+            <option value="Mandya">Mandya District</option>
+            <option value="Shivamogga">Shivamogga District</option>
           </select>
 
-          {/* Fullscreen toggle */}
+          {/* Fullscreen Toggle */}
           <button
+            type="button"
             onClick={() => setIsFullscreen(!isFullscreen)}
-            className="p-1.5 rounded-lg bg-white/5 hover:bg-white/10 text-neutral-300 hover:text-white transition-colors"
+            className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-neutral-300 hover:text-white transition-colors cursor-pointer"
             title="Toggle Fullscreen"
           >
             {isFullscreen ? <Minimize2 className="w-4 h-4" /> : <Maximize2 className="w-4 h-4" />}
@@ -423,14 +412,31 @@ export default function RuralIssueHeatmap() {
         </div>
       </div>
 
+      {/* Location Error Alert Banner */}
+      {locationError && (
+        <div className="bg-amber-500/20 border-b border-amber-500/40 px-4 py-2 text-xs text-amber-200 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 text-amber-400 shrink-0" />
+            <span>{locationError}</span>
+          </div>
+          <button
+            type="button"
+            onClick={() => setLocationError(null)}
+            className="text-amber-300 hover:text-white font-bold text-xs cursor-pointer ml-4"
+          >
+            Dismiss ✕
+          </button>
+        </div>
+      )}
+
       {/* Thematic Category Filter Bar */}
-      <div className="bg-[#1f1f1f] border-b border-white/10 px-4 py-2 flex flex-wrap items-center gap-2">
+      <div className="bg-[#1f1f1f] border-b border-white/10 px-4 py-2.5 flex flex-wrap items-center gap-2">
         <span className="text-xs font-bold text-neutral-400 flex items-center gap-1 mr-1">
           <Filter className="w-3 h-3" /> Categories:
         </span>
         <button
           onClick={() => setSelectedCategory("all")}
-          className={`text-xs px-2.5 py-1 rounded-full font-bold transition-colors ${
+          className={`text-xs px-3 py-1.5 rounded-full font-bold transition-colors cursor-pointer ${
             selectedCategory === "all"
               ? "bg-white text-black shadow-xs"
               : "bg-white/5 text-neutral-300 hover:bg-white/10"
@@ -445,7 +451,7 @@ export default function RuralIssueHeatmap() {
             <button
               key={key}
               onClick={() => setSelectedCategory(key)}
-              className={`text-xs px-2.5 py-1 rounded-full font-bold flex items-center gap-1.5 transition-colors border ${
+              className={`text-xs px-3 py-1.5 rounded-full font-bold flex items-center gap-1.5 transition-colors border cursor-pointer ${
                 isActive
                   ? "text-white shadow-xs"
                   : "text-neutral-300 hover:bg-white/10 border-transparent"
@@ -463,22 +469,47 @@ export default function RuralIssueHeatmap() {
         })}
       </div>
 
-      {/* Map canvas */}
+      {/* Map Canvas */}
       <div className="relative w-full h-[520px] bg-neutral-900">
         <div ref={mapContainerRef} className="w-full h-full" />
 
         {loading && (
           <div className="absolute inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-10 text-white gap-2">
             <Loader2 className="w-5 h-5 animate-spin text-sky-400" />
-            <span className="text-xs font-bold">Rendering MapTiler clusters...</span>
+            <span className="text-xs font-bold">Synchronizing live incidents from database...</span>
+          </div>
+        )}
+
+        {/* Clean Empty State: Zero Incidents in Sector */}
+        {!loading && filteredIncidents.length === 0 && (
+          <div className="absolute inset-x-4 top-6 z-20 max-w-md mx-auto p-5 rounded-3xl bg-black/90 border border-neutral-700 text-center shadow-2xl backdrop-blur-md space-y-3 animate-in fade-in">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-950/80 text-emerald-400 border border-emerald-700 flex items-center justify-center mx-auto shadow-inner">
+              <CheckCircle2 className="w-6 h-6 stroke-[2.5]" />
+            </div>
+            <div>
+              <h4 className="text-sm sm:text-base font-black text-white">
+                All Clear — No Active Incidents Reported
+              </h4>
+              <p className="text-xs text-neutral-300 mt-1 leading-relaxed">
+                There are no open emergency incidents or critical complaints recorded in {selectedDistrict === "all" ? "any district" : `${selectedDistrict} District`}. Live citizen reports will appear here automatically.
+              </p>
+            </div>
+            <div className="pt-1">
+              <Link
+                href="/citizen/new-request"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white hover:bg-neutral-200 text-black text-xs font-bold shadow-md transition-all"
+              >
+                <span>Report an Issue or Emergency</span>
+              </Link>
+            </div>
           </div>
         )}
 
         {/* Floating Map Legend */}
-        <div className="absolute bottom-4 left-4 z-10 bg-black/85 backdrop-blur-md border border-white/10 rounded-xl p-3 text-xs text-neutral-200 shadow-xl max-w-xs hidden sm:block">
+        <div className="absolute bottom-4 left-4 z-10 bg-black/85 backdrop-blur-md border border-white/10 rounded-2xl p-3 text-xs text-neutral-200 shadow-xl max-w-xs hidden sm:block">
           <div className="font-bold text-white mb-1.5 flex items-center justify-between">
-            <span>Thematic Legend</span>
-            <span className="text-[10px] text-neutral-400">MapTiler Leaflet</span>
+            <span>Incident Categories</span>
+            <span className="text-[10px] text-neutral-400">MapTiler Engine</span>
           </div>
           <div className="grid grid-cols-2 gap-1.5 text-[11px]">
             <div className="flex items-center gap-1.5">
@@ -491,7 +522,7 @@ export default function RuralIssueHeatmap() {
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-full bg-[#dc2626] inline-block" />
-              <span>Health / PHC</span>
+              <span>Health / Medical</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-3 h-3 rounded-full bg-[#ea580c] inline-block" />
@@ -499,7 +530,7 @@ export default function RuralIssueHeatmap() {
             </div>
             <div className="flex items-center gap-1.5 col-span-2">
               <span className="w-3 h-3 rounded-full bg-[#16a34a] inline-block" />
-              <span>Agriculture / Cattle Triage</span>
+              <span>Agriculture / Canal Triage</span>
             </div>
           </div>
         </div>
@@ -518,7 +549,7 @@ export default function RuralIssueHeatmap() {
                     className={`ml-1.5 text-[10px] font-black uppercase tracking-wider px-2 py-0.5 rounded ${
                       selectedIncident.urgency === "Critical"
                         ? "bg-red-500/20 text-red-400 border border-red-500/40"
-                        : "bg-amber-500/20 text-amber-400 border border-amber-500/40"
+                        : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
                     }`}
                   >
                     {selectedIncident.urgency}
@@ -527,75 +558,57 @@ export default function RuralIssueHeatmap() {
               </div>
               <button
                 onClick={() => setSelectedIncident(null)}
-                className="text-neutral-400 hover:text-white p-1 rounded hover:bg-white/10"
+                className="text-neutral-400 hover:text-white text-sm font-bold p-1"
               >
                 ✕
               </button>
             </div>
 
-            <h4 className="font-bold text-sm text-white leading-snug mb-2">{selectedIncident.title}</h4>
+            <h4 className="text-sm font-black text-white leading-snug mb-1">
+              {selectedIncident.title}
+            </h4>
 
-            <div className="space-y-1.5 text-xs text-neutral-300 mb-3 bg-white/5 p-2.5 rounded-xl border border-white/5">
-              <div className="flex items-center justify-between">
-                <span className="text-neutral-400">Location:</span>
-                <span className="font-semibold text-white truncate max-w-[180px]">
-                  {selectedIncident.village ? `${selectedIncident.village}, ` : ""}
-                  {selectedIncident.district}
+            <div className="space-y-1 text-xs text-neutral-300 mb-3">
+              <div className="flex items-center gap-1.5 text-neutral-400">
+                <MapPin className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+                <span className="truncate">
+                  {selectedIncident.location} ({selectedIncident.district})
                 </span>
               </div>
-              {selectedIncident.panchayat && (
-                <div className="flex items-center justify-between">
-                  <span className="text-neutral-400">Panchayat / Block:</span>
-                  <span className="font-mono text-neutral-300">
-                    {selectedIncident.panchayat} / {selectedIncident.block}
-                  </span>
+              {selectedIncident.village && (
+                <div className="text-[11px] text-neutral-400 pl-5">
+                  Village: {selectedIncident.village} • GP: {selectedIncident.panchayat || "N/A"}
                 </div>
               )}
-              <div className="flex items-center justify-between">
-                <span className="text-neutral-400">Risk Score:</span>
-                <span
-                  className={`font-black ${
-                    selectedIncident.riskScore >= 80 ? "text-red-400" : "text-amber-400"
-                  }`}
-                >
-                  {selectedIncident.riskScore} / 100
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
-                <span className="text-neutral-400">GPS Coordinates:</span>
-                <span className="font-mono text-[11px] text-neutral-400">
-                  {selectedIncident.latitude?.toFixed(4)}, {selectedIncident.longitude?.toFixed(4)}
-                </span>
-              </div>
             </div>
 
-            {dispatchSuccess && (
-              <div className="mb-3 p-2 rounded-lg bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 text-xs font-bold flex items-center gap-1.5">
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
-                <span>{dispatchSuccess}</span>
-              </div>
-            )}
-
-            <div className="flex items-center gap-2">
-              <button
-                onClick={() => handleAutoDispatch(selectedIncident)}
-                disabled={dispatchingId === selectedIncident.id}
-                className="flex-1 py-2 px-3 rounded-xl bg-red-600 hover:bg-red-500 disabled:opacity-50 text-white font-black text-xs flex items-center justify-center gap-1.5 transition-colors shadow-lg shadow-red-600/30"
-              >
-                {dispatchingId === selectedIncident.id ? (
-                  <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                ) : (
-                  <Siren className="w-3.5 h-3.5" />
-                )}
-                <span>Auto-Dispatch</span>
-              </button>
-
-              <Link
-                href={`/citizen/request/${selectedIncident.id}`}
-                className="py-2 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white font-bold text-xs flex items-center justify-center transition-colors"
-              >
-                View Incident
-              </Link>
+            {/* Auto-Dispatch Action */}
+            <div className="pt-2 border-t border-white/10 space-y-2">
+              {dispatchSuccess ? (
+                <div className="p-2 bg-emerald-500/20 border border-emerald-500/40 rounded-xl text-xs text-emerald-300 flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>{dispatchSuccess}</span>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => handleAutoDispatch(selectedIncident)}
+                  disabled={dispatchingId === selectedIncident.id}
+                  className="w-full py-2.5 px-3 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-black flex items-center justify-center gap-2 shadow-lg transition-all cursor-pointer disabled:opacity-50"
+                >
+                  {dispatchingId === selectedIncident.id ? (
+                    <>
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      <span>Routing Nearest Responder...</span>
+                    </>
+                  ) : (
+                    <>
+                      <Siren className="w-4 h-4" />
+                      <span>1-Click Auto-Dispatch Responder</span>
+                    </>
+                  )}
+                </button>
+              )}
             </div>
           </div>
         )}

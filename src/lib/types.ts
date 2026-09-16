@@ -49,6 +49,7 @@ export interface JWTPayload {
   name: string;
   phone: string;
   role: UserRole;
+  language?: string;
   location: string;
   district?: string;
   citizenProfile?: string | null;

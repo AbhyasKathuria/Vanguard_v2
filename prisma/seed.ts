@@ -83,6 +83,7 @@ async function main() {
       phone: "9876543230",
       passwordHash,
       role: "citizen",
+      citizenProfile: "farmer",
       location: "Mandya",
       district: "Mandya",
       language: "kn",
@@ -519,7 +520,7 @@ async function main() {
     data: {
       id: "req_103",
       userId: citizenRampur.id,
-      category: "emergency",
+      category: "health",
       description: "Elderly resident requires emergency transport to primary health center.",
       priority: "high",
       location: "Rampur",
@@ -674,120 +675,8 @@ async function main() {
     // 6. CIVIC VULNERABILITIES & THREAT MATRIX
     // ==========================================
     console.log("📍 Seeding Civic Vulnerability & Threat Matrix points...");
-    await prisma.vulnerability.createMany({
-      data: [
-        {
-          id: "vuln_1",
-          title: "Monsoon Road Crater & Bridge Joint Fracture",
-          category: "Structural",
-          severity: "Critical",
-          threatScore: 92.5,
-          populationDensity: "Dense Urban",
-          affectedEstimate: 3400,
-          timeToDecayDays: 14,
-          decayFactor: 1.45,
-          location: "Kosi River Old Bypass Bridge, Rampur",
-          district: "Rampur",
-          latitude: 28.8154,
-          longitude: 79.025,
-          status: "active",
-          mitigationPlan: "Emergency structural scaffolding and heavy vehicular diversion within 48 hours.",
-          reportedBy: "VANGUARD AI Vision Engine",
-        },
-        {
-          id: "vuln_2",
-          title: "Dangling High-Tension 11kV Feeder Wire near Primary School",
-          category: "Electrical",
-          severity: "Critical",
-          threatScore: 96.0,
-          populationDensity: "Market Hub",
-          affectedEstimate: 1850,
-          timeToDecayDays: 3,
-          decayFactor: 1.8,
-          location: "Ward 4 School Boundary, Sitapur",
-          district: "Sitapur",
-          latitude: 27.5684,
-          longitude: 80.6829,
-          status: "active",
-          mitigationPlan: "Immediate grid shut-off and insulator pole replacement.",
-          reportedBy: "Simulated Voice Dispatch Call",
-        },
-        {
-          id: "vuln_3",
-          title: "Contaminated Waste Overflow & Open Canal Blockage",
-          category: "Hydrological",
-          severity: "High",
-          threatScore: 78.0,
-          populationDensity: "Residential",
-          affectedEstimate: 2100,
-          timeToDecayDays: 21,
-          decayFactor: 1.25,
-          location: "Sugar Mill Canal Junction, Mandya",
-          district: "Mandya",
-          latitude: 12.5218,
-          longitude: 76.8951,
-          status: "active",
-          mitigationPlan: "Mechanical silt dredging and biological sanitization flush.",
-          reportedBy: "Citizen Vision Auto-Draft",
-        },
-        {
-          id: "vuln_4",
-          title: "Hillside Embankment Soil Erosion & Rockfall Hazard",
-          category: "Environmental",
-          severity: "High",
-          threatScore: 82.0,
-          populationDensity: "Rural Hamlet",
-          affectedEstimate: 850,
-          timeToDecayDays: 10,
-          decayFactor: 1.5,
-          location: "Bhadra Reservoir Ghat Road, Shivamogga",
-          district: "Shivamogga",
-          latitude: 13.9299,
-          longitude: 75.5681,
-          status: "inspecting",
-          mitigationPlan: "Wire-mesh retaining wall installation and heavy vehicle weight limits.",
-          reportedBy: "District Threat Matrix Scanner",
-        },
-        {
-          id: "vuln_5",
-          title: "Severe Road Pothole Swarm along State Highway 7",
-          category: "Traffic",
-          severity: "Moderate",
-          threatScore: 65.0,
-          populationDensity: "Market Hub",
-          affectedEstimate: 4500,
-          timeToDecayDays: 45,
-          decayFactor: 1.15,
-          location: "NH24 Overpass Underpass, Rampur East",
-          district: "Rampur",
-          latitude: 28.825,
-          longitude: 79.035,
-          status: "active",
-          mitigationPlan: "Cold-mix asphalt patch application and high-visibility warning cones.",
-          reportedBy: "AI Vision Complaint Box",
-        },
-        {
-          id: "vuln_6",
-          title: "Substation Transformer Oil Leakage & Smoke",
-          category: "Electrical",
-          severity: "Critical",
-          threatScore: 89.0,
-          populationDensity: "Dense Urban",
-          affectedEstimate: 6200,
-          timeToDecayDays: 7,
-          decayFactor: 1.6,
-          location: "Town Hall Square, Sitapur",
-          district: "Sitapur",
-          latitude: 27.5784,
-          longitude: 80.6929,
-          status: "mitigated",
-          mitigationPlan: "Transformer cooling core overhauled by District Electricity Board.",
-          reportedBy: "Citizen Urgent Request",
-        },
-      ],
-    });
-
-    // ==========================================
+    // Real-time only: no placeholder vulnerability records seeded
+// ==========================================
     // 7. SAMPLE MULTIMODAL VISION COMPLAINTS
     // ==========================================
     console.log("📸 Seeding AI Multimodal Vision Complaints...");
@@ -815,7 +704,7 @@ async function main() {
           userId: "usr_citizen_2",
           title: "Injured Stray Dog with Deep Laceration and Fractured Left Hind Leg",
           category: "Animal Welfare",
-          urgency: "Critical",
+          urgency: "Moderate",
           urgencyReasoning: "Animal is unable to bear weight, showing acute distress, visible compound wound prone to rapid infection.",
           description: "Visual assessment indicates an injured medium-sized street dog with acute vehicular trauma to left hind quarter. Visible open wound requiring immediate antiseptic debridement, splint stabilization, and animal rescue transport.",
           detectedTags: JSON.stringify(["#injured-animal", "#canine-trauma", "#fracture", "#emergency-rescue"]),
@@ -841,7 +730,7 @@ async function main() {
           callerName: "Vikas Agrawal",
           callerPhone: "9876543299",
           scenarioTitle: "Hit-and-Run on Highway 7 (Pedestrian Injured)",
-          urgency: "Critical",
+          urgency: "Moderate",
           status: "dispatched",
           transcriptJson: JSON.stringify([
             { speaker: "caller", text: "Emergency! A speeding truck just hit an elderly pedestrian near KM 42 on Highway 7!", timestamp: "00:02" },
@@ -859,7 +748,7 @@ async function main() {
           callerName: "Pooja Hegde",
           callerPhone: "9876543298",
           scenarioTitle: "LPG Commercial Cylinder Gas Leak near Primary School",
-          urgency: "Critical",
+          urgency: "Moderate",
           status: "dispatched",
           transcriptJson: JSON.stringify([
             { speaker: "caller", text: "We smell severe LPG gas right behind the primary school canteen!", timestamp: "00:01" },
@@ -1211,7 +1100,7 @@ async function main() {
         category: "Sanitation",
         subcategory: "SANITATION_DUMPING",
         assignedDepartment: "Sanitation & Public Health",
-        urgency: "Critical",
+        urgency: "Moderate",
         priority: "Urgent",
         description: "Municipal waste has not been collected for 5 days. Overflowing into the primary open stormwater drain causing foul stench and mosquito breeding.",
         detectedTags: JSON.stringify(["#garbage", "#drain_clog", "#sanitation_hotspot"]),
@@ -1251,7 +1140,7 @@ async function main() {
         category: "Public Safety",
         subcategory: "SAFELINE_HARASSMENT",
         assignedDepartment: "Women & Child Safety Cell",
-        urgency: "Critical",
+        urgency: "Moderate",
         priority: "Emergency",
         description: "Group of individuals routinely gathering around the unlit stretch near the Panchayat school bus stand during evening commute hours.",
         detectedTags: JSON.stringify(["#safeline", "#women_safety", "#patrol_request"]),
@@ -1286,12 +1175,14 @@ async function main() {
     const rootDb = path.join(process.cwd(), "dev.db");
     const prismaDir = path.join(process.cwd(), "prisma");
     const prismaDb = path.join(prismaDir, "dev.db");
-    if (fs.existsSync(rootDb)) {
+    if (fs.existsSync(prismaDb) && fs.statSync(prismaDb).size > 0) {
+      fs.copyFileSync(prismaDb, rootDb);
+    } else if (fs.existsSync(rootDb) && fs.statSync(rootDb).size > 0) {
       if (!fs.existsSync(prismaDir)) fs.mkdirSync(prismaDir, { recursive: true });
       fs.copyFileSync(rootDb, prismaDb);
     }
-  } catch {
-    // ignore
+  } catch (err) {
+    console.error("Seed sync warning:", err);
   }
 
   console.log("✅ VANGUARD Database seeding completed successfully!");

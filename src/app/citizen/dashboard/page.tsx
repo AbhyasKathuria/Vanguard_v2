@@ -39,11 +39,13 @@ import {
   Check,
   User,
   HeartHandshake,
+  Droplets,
 } from "lucide-react";
+import BloodBankDirectory from "@/components/blood-bank/BloodBankDirectory";
 
 export default function CitizenDashboard() {
   const { t } = useLanguage();
-  const [activeMainTab, setActiveMainTab] = useState<"grievances" | "scam" | "schemes" | "documents" | "disaster">("grievances");
+  const [activeMainTab, setActiveMainTab] = useState<"grievances" | "scam" | "schemes" | "documents" | "disaster" | "blood_bank">("grievances");
 
   // Requests state
   const [requests, setRequests] = useState<any[]>([]);
@@ -246,7 +248,7 @@ export default function CitizenDashboard() {
 
       {/* Sample 2: Minimal Icon-Grid Row (Quick Tools) */}
       <div className="bg-white dark:bg-neutral-900/80 rounded-2xl border border-neutral-200/80 dark:border-neutral-800 p-4 shadow-sm backdrop-blur-xs">
-        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
+        <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2">
           {/* Tool 1: Grievances & SLA */}
           <button
             onClick={() => setActiveMainTab("grievances")}
@@ -310,7 +312,22 @@ export default function CitizenDashboard() {
             <span className="text-[11px] font-semibold text-center leading-tight">Doc Help</span>
           </button>
 
-          {/* Tool 5: Disaster Shelters */}
+          {/* Tool 5: Blood Bank Assistance */}
+          <button
+            onClick={() => setActiveMainTab("blood_bank")}
+            className={"flex flex-col items-center justify-center p-2.5 rounded-xl transition-all cursor-pointer group " + (
+              activeMainTab === "blood_bank"
+                ? "bg-rose-50 dark:bg-rose-950/60 text-rose-600 dark:text-rose-400 font-bold"
+                : "text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800"
+            )}
+          >
+            <div className="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-900/50 text-rose-600 dark:text-rose-400 flex items-center justify-center mb-1.5 shadow-2xs group-hover:scale-105 transition-transform">
+              <Droplets className="w-5 h-5" />
+            </div>
+            <span className="text-[11px] font-semibold text-center leading-tight">रक्त सहायता (Blood)</span>
+          </button>
+
+          {/* Tool 6: Disaster Shelters */}
           <button
             onClick={() => setActiveMainTab("disaster")}
             className={"flex flex-col items-center justify-center p-2.5 rounded-xl transition-all cursor-pointer group " + (
@@ -325,7 +342,7 @@ export default function CitizenDashboard() {
             <span className="text-[11px] font-semibold text-center leading-tight">Disaster Desk</span>
           </button>
 
-          {/* Tool 6: Women SafeLine (Direct Hub Link) */}
+          {/* Tool 7: Women SafeLine (Direct Hub Link) */}
           <Link
             href="/citizen/women"
             className="flex flex-col items-center justify-center p-2.5 rounded-xl text-neutral-600 dark:text-neutral-300 hover:bg-rose-50 dark:hover:bg-rose-950/40 hover:text-rose-600 dark:hover:text-rose-400 transition-all cursor-pointer group"
@@ -336,7 +353,7 @@ export default function CitizenDashboard() {
             <span className="text-[11px] font-semibold text-center leading-tight">SafeLine Hub</span>
           </Link>
 
-          {/* Tool 7: Farmer Hub (Direct Hub Link) */}
+          {/* Tool 8: Farmer Hub (Direct Hub Link) */}
           <Link
             href="/farmer"
             className="flex flex-col items-center justify-center p-2.5 rounded-xl text-neutral-600 dark:text-neutral-300 hover:bg-emerald-50 dark:hover:bg-emerald-950/40 hover:text-emerald-600 dark:hover:text-emerald-400 transition-all cursor-pointer group"
@@ -1045,6 +1062,13 @@ export default function CitizenDashboard() {
               ))}
             </div>
           </div>
+        </div>
+      )}
+
+      {/* ================= TAB 6: BLOOD BANK & DONATION CENTERS ================= */}
+      {activeMainTab === "blood_bank" && (
+        <div className="space-y-6">
+          <BloodBankDirectory />
         </div>
       )}
     </div>

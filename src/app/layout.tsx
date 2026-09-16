@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { cookies } from "next/headers";
 import { getCurrentUser } from "@/lib/auth";
 import AppShell from "@/components/AppShell";
 import FloatingAssistantDock from "@/components/FloatingAssistantDock";
@@ -23,8 +24,9 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const user = await getCurrentUser();
-  const initialLocale: LanguageLocale =
-    user?.language === "hi" || user?.language === "kn" ? user.language : "en";
+  const cookieStore = await cookies();
+  const cookieLocale = cookieStore.get("vanguard_locale")?.value;
+  const initialLocale: LanguageLocale = cookieLocale || user?.language || "en";
 
   return (
     <html lang={initialLocale}>

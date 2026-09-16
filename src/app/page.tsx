@@ -10,6 +10,9 @@ import {
   Globe,
   Check,
   Search,
+  UserPlus,
+  LogIn,
+  Sparkles,
 } from "lucide-react";
 
 interface GreetingItem {
@@ -50,21 +53,21 @@ export default function RootLandingPage() {
   const { locale, setLocale } = useLanguage();
   const [, startTransition] = useTransition();
 
-  // Mode: "hello" (screen 1) | "choose-language" (screen 2)
-  const [stage, setStage] = useState<"hello" | "choose-language">("hello");
+  // Mode: "welcome" (Step 1) | "language" (Step 2)
+  const [stage, setStage] = useState<"welcome" | "language">("welcome");
+  const [targetAuthMode, setTargetAuthMode] = useState<"/login" | "/signup">("/login");
   const [currentIndex, setCurrentIndex] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
   const [regionFilter, setRegionFilter] = useState<"all" | "India" | "Global">("all");
   const [selectedLang, setSelectedLang] = useState(locale || "en");
 
-  // Cycling greeting like iPhone startup:
-  // Starts fast (rapid ~70ms cycle through all languages), then settles into smooth cadence
+  // Multilingual cycling ticker
   useEffect(() => {
-    if (stage !== "hello") return;
+    if (stage !== "welcome") return;
 
     const interval = setInterval(() => {
       setCurrentIndex((prev) => (prev + 1) % GREETINGS.length);
-    }, 70);
+    }, 120);
 
     return () => clearInterval(interval);
   }, [stage]);
@@ -74,9 +77,14 @@ export default function RootLandingPage() {
     setLocale(code);
   };
 
+  const handleStartWithAuth = (mode: "/login" | "/signup") => {
+    setTargetAuthMode(mode);
+    setStage("language");
+  };
+
   const handleProceedToAuth = () => {
     startTransition(() => {
-      router.push("/login");
+      router.push(targetAuthMode);
     });
   };
 
@@ -94,94 +102,114 @@ export default function RootLandingPage() {
   });
 
   return (
-    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-between p-6 sm:p-10 select-none overflow-hidden font-sans">
-      {/* ================= STAGE 1: IPHONE "HELLO" SCREEN ================= */}
-      {stage === "hello" && (
-        <div
-          onClick={() => setStage("choose-language")}
-          className="flex-1 w-full max-w-2xl flex flex-col items-center justify-center text-center space-y-12 cursor-pointer animate-in fade-in duration-700"
-        >
-          {/* Logo & Name Only */}
-          <div className="flex flex-col items-center gap-4">
+    <div className="min-h-screen bg-black text-white flex flex-col items-center justify-between p-5 sm:p-10 select-none font-sans">
+      {/* ================= STEP A: WELCOME SCREEN ================= */}
+      {stage === "welcome" && (
+        <div className="flex-1 w-full max-w-2xl flex flex-col items-center justify-center text-center space-y-8 animate-in fade-in duration-500 my-auto">
+          {/* Logo & Name */}
+          <div className="flex flex-col items-center gap-3">
             <div className="relative">
-              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-neutral-900 border border-neutral-800 flex items-center justify-center shadow-2xl shadow-sky-500/20 group">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 rounded-3xl bg-neutral-900 border-2 border-neutral-700 flex items-center justify-center shadow-2xl shadow-sky-500/20">
                 <Shield className="w-10 h-10 sm:w-12 sm:h-12 text-sky-400" />
               </div>
               <div className="absolute -inset-2 bg-gradient-to-tr from-sky-500/20 via-transparent to-amber-500/20 rounded-3xl blur-xl -z-10 animate-pulse" />
             </div>
 
             <div className="space-y-1">
-              <h1 className="text-2xl sm:text-3xl font-black tracking-[0.25em] text-white uppercase">
+              <h1 className="text-3xl sm:text-4xl font-black tracking-[0.2em] text-white uppercase">
                 VANGUARD
               </h1>
-              <p className="text-[11px] sm:text-xs text-neutral-400 font-mono tracking-widest uppercase">
-                Rural Service Routing &amp; Civic Governance
+              <p className="text-xs text-neutral-400 font-mono tracking-widest uppercase">
+                Rural Service Routing &amp; Governance
               </p>
             </div>
           </div>
 
-          {/* Cycling "Hello" / "नमस्ते" Greeting */}
-          <div className="space-y-3 min-h-[140px] sm:min-h-[160px] flex flex-col items-center justify-center">
-            <div className="text-6xl sm:text-7xl md:text-8xl font-light tracking-tight text-white transition-all duration-100 ease-out">
+          {/* Multilingual Cycling Greeting Hero */}
+          <div className="space-y-2 min-h-[110px] flex flex-col items-center justify-center">
+            <div className="text-5xl sm:text-6xl md:text-7xl font-light tracking-tight text-white transition-all duration-100 ease-out">
               {currentGreeting.text}
             </div>
 
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-900/90 border border-neutral-800 text-xs font-medium text-neutral-400 font-mono">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-neutral-900 border border-neutral-700 text-xs font-medium text-neutral-300 font-mono">
               <span>{currentGreeting.flag}</span>
               <span>{currentGreeting.native}</span>
-              <span className="text-neutral-600">•</span>
+              <span className="text-neutral-500">•</span>
               <span>{currentGreeting.lang}</span>
             </div>
           </div>
 
-          {/* Apple-style Call to Action */}
-          <div className="pt-6 space-y-4">
+          {/* Plain-Language Explanation (No Jargon, High Readability) */}
+          <div className="max-w-xl mx-auto space-y-2 px-4 py-3 rounded-2xl bg-neutral-900/70 border border-neutral-800">
+            <p className="text-sm sm:text-base font-medium text-neutral-200 leading-relaxed">
+              One platform to connect rural communities with the support, services and authorities they need.
+            </p>
+            <p className="text-xs text-neutral-400">
+              ग्रामीण समुदायों को आवश्यक सरकारी सहायता, सेवा और अधिकारियों से सीधे जोड़ने वाला साझा मंच।
+            </p>
+          </div>
+
+          {/* Mandatory Action Buttons - Large, High-Contrast Tap Targets (min 52px) */}
+          <div className="w-full max-w-md space-y-3 pt-2">
             <button
               type="button"
-              onClick={(e) => {
-                e.stopPropagation();
-                setStage("choose-language");
-              }}
-              className="px-8 py-3.5 rounded-full bg-white hover:bg-neutral-200 text-black text-xs sm:text-sm font-bold tracking-wide shadow-xl hover:shadow-2xl hover:scale-105 active:scale-95 transition-all flex items-center gap-2.5 mx-auto cursor-pointer"
+              onClick={() => handleStartWithAuth("/signup")}
+              className="w-full h-14 rounded-2xl bg-white hover:bg-neutral-200 text-black font-extrabold text-sm sm:text-base tracking-wide shadow-2xl flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
             >
-              <span>Press to Start • भाषा चुनें</span>
-              <ArrowRight className="w-4 h-4" />
+              <UserPlus className="w-5 h-5 text-black stroke-[2.5]" />
+              <span>Sign Up • नया खाता बनाएं</span>
+              <ArrowRight className="w-4 h-4 text-black" />
             </button>
-            <p className="text-[11px] text-neutral-500 font-medium">
-              Click anywhere on screen to choose your language
-            </p>
+
+            <button
+              type="button"
+              onClick={() => handleStartWithAuth("/login")}
+              className="w-full h-14 rounded-2xl bg-neutral-900 hover:bg-neutral-800 border-2 border-neutral-700 text-white font-extrabold text-sm sm:text-base tracking-wide shadow-xl flex items-center justify-center gap-3 transition-all hover:scale-[1.02] active:scale-[0.98] cursor-pointer"
+            >
+              <LogIn className="w-5 h-5 text-sky-400 stroke-[2.5]" />
+              <span>Sign In • पहले से खाता है? लॉगिन करें</span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => setStage("language")}
+              className="text-xs text-neutral-400 hover:text-white font-semibold pt-2 flex items-center justify-center gap-1.5 mx-auto cursor-pointer"
+            >
+              <Globe className="w-3.5 h-3.5 text-neutral-400" />
+              <span>Choose Language • भाषा बदलें ({SUPPORTED_LANGUAGES.length} Languages)</span>
+            </button>
           </div>
         </div>
       )}
 
-      {/* ================= STAGE 2: APPLE LANGUAGE SELECTOR SCREEN ================= */}
-      {stage === "choose-language" && (
-        <div className="flex-1 w-full max-w-3xl flex flex-col justify-center space-y-6 py-6 animate-in fade-in slide-in-from-bottom-6 duration-500">
+      {/* ================= STEP B: LANGUAGE SELECTION ================= */}
+      {stage === "language" && (
+        <div className="flex-1 w-full max-w-3xl flex flex-col justify-center space-y-5 py-4 animate-in fade-in slide-in-from-bottom-6 duration-300 my-auto">
           {/* Header */}
           <div className="text-center space-y-2">
-            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/20 text-xs font-bold text-sky-400 mb-1">
-              <Globe className="w-3.5 h-3.5" />
-              <span>Language Setup • भाषा चयन</span>
+            <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/20 text-xs font-bold text-sky-400 mb-1">
+              <Globe className="w-4 h-4" />
+              <span>Step 2 of 4: Choose Language • भाषा चयन</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              Choose Your Language
+              Select Your Preferred Language
             </h2>
-            <p className="text-xs text-neutral-400 max-w-md mx-auto">
-              Select your preferred language. All voice calls, portal dashboards, and civic guidance will automatically adapt.
+            <p className="text-xs sm:text-sm text-neutral-300 max-w-md mx-auto">
+              Your entire experience, voice calls, and dashboards will stay in this language.
             </p>
           </div>
 
           {/* Search & Region Filters */}
-          <div className="flex flex-col sm:flex-row items-center gap-3 bg-neutral-900/80 p-2 rounded-2xl border border-neutral-800">
+          <div className="flex flex-col sm:flex-row items-center gap-3 bg-neutral-900 p-2.5 rounded-2xl border border-neutral-800">
             {/* Search Input */}
             <div className="relative flex-1 w-full">
-              <Search className="w-4 h-4 text-neutral-500 absolute left-3.5 top-1/2 -translate-y-1/2" />
+              <Search className="w-4 h-4 text-neutral-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
               <input
                 type="text"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder="Search 22 languages (e.g. Hindi, Kannada, தமிழ்)..."
-                className="w-full pl-10 pr-4 py-2 bg-neutral-950 border border-neutral-800 rounded-xl text-xs text-white placeholder-neutral-500 focus:outline-none focus:border-sky-500 transition-colors"
+                placeholder="Search languages (e.g. Hindi, Kannada, தமிழ்)..."
+                className="w-full pl-10 pr-4 py-2.5 bg-black border border-neutral-700 rounded-xl text-xs sm:text-sm text-white placeholder-neutral-500 focus:outline-none focus:border-sky-500 transition-colors"
               />
             </div>
 
@@ -192,9 +220,9 @@ export default function RootLandingPage() {
                   key={reg}
                   type="button"
                   onClick={() => setRegionFilter(reg)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                  className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all cursor-pointer ${
                     regionFilter === reg
-                      ? "bg-white text-black shadow-xs"
+                      ? "bg-white text-black shadow-md"
                       : "bg-neutral-800 text-neutral-400 hover:text-white"
                   }`}
                 >
@@ -205,7 +233,7 @@ export default function RootLandingPage() {
           </div>
 
           {/* Language Cards Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2.5 max-h-[360px] overflow-y-auto pr-1 custom-scrollbar">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-[340px] overflow-y-auto pr-1 custom-scrollbar">
             {filteredLanguages.map((lang) => {
               const isSelected = selectedLang === lang.code;
 
@@ -214,32 +242,32 @@ export default function RootLandingPage() {
                   key={lang.code}
                   type="button"
                   onClick={() => handleSelectLanguage(lang.code)}
-                  className={`p-3.5 rounded-2xl border text-left flex flex-col justify-between transition-all duration-150 cursor-pointer relative group ${
+                  className={`p-3.5 rounded-2xl border-2 text-left flex flex-col justify-between transition-all duration-150 cursor-pointer relative group ${
                     isSelected
-                      ? "bg-[#0071E3] border-[#0071E3] text-white shadow-lg shadow-sky-500/20 scale-[1.02]"
+                      ? "bg-sky-600 border-white text-white shadow-xl scale-[1.02]"
                       : "bg-neutral-900 hover:bg-neutral-850 border-neutral-800 hover:border-neutral-700 text-neutral-200"
                   }`}
                 >
                   <div className="flex items-start justify-between">
-                    <span className="text-xl">{lang.flag}</span>
+                    <span className="text-2xl">{lang.flag}</span>
                     <div
-                      className={`w-5 h-5 rounded-full border flex items-center justify-center transition-all ${
+                      className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${
                         isSelected
-                          ? "bg-white text-[#0071E3] border-white"
-                          : "border-neutral-700 group-hover:border-neutral-500"
+                          ? "bg-white text-sky-600 border-white"
+                          : "border-neutral-600 group-hover:border-neutral-400"
                       }`}
                     >
                       {isSelected && <Check className="w-3.5 h-3.5 stroke-[3]" />}
                     </div>
                   </div>
 
-                  <div className="mt-2">
-                    <div className="text-sm font-extrabold tracking-tight truncate">
+                  <div className="mt-2.5">
+                    <div className="text-sm sm:text-base font-extrabold tracking-tight truncate">
                       {lang.nativeName}
                     </div>
                     <div
-                      className={`text-[11px] truncate ${
-                        isSelected ? "text-white/80" : "text-neutral-400"
+                      className={`text-xs truncate ${
+                        isSelected ? "text-white/90 font-medium" : "text-neutral-400"
                       }`}
                     >
                       {lang.name}
@@ -250,33 +278,31 @@ export default function RootLandingPage() {
             })}
           </div>
 
-          {/* Action Row: Proceed to Login / Signup */}
-          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-neutral-800">
+          {/* Navigation Controls */}
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-3 border-t border-neutral-800">
             <button
               type="button"
-              onClick={() => setStage("hello")}
-              className="text-xs text-neutral-500 hover:text-neutral-300 font-bold cursor-pointer"
+              onClick={() => setStage("welcome")}
+              className="text-xs sm:text-sm text-neutral-400 hover:text-white font-bold cursor-pointer"
             >
-              ← Back to Greeting
+              ← Back to Welcome
             </button>
 
-            <div className="flex items-center gap-3 w-full sm:w-auto">
-              <button
-                type="button"
-                onClick={handleProceedToAuth}
-                className="flex-1 sm:flex-none px-7 py-3 rounded-xl bg-white hover:bg-neutral-200 text-black text-xs font-bold shadow-lg flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-105 active:scale-95"
-              >
-                <span>Continue to Sign In • आगे बढ़ें</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
+            <button
+              type="button"
+              onClick={handleProceedToAuth}
+              className="w-full sm:w-auto px-8 h-12 rounded-xl bg-white hover:bg-neutral-200 text-black font-extrabold text-xs sm:text-sm shadow-xl flex items-center justify-center gap-2 cursor-pointer transition-all hover:scale-105 active:scale-95"
+            >
+              <span>Continue to {targetAuthMode === "/signup" ? "Sign Up" : "Sign In"} • आगे बढ़ें</span>
+              <ArrowRight className="w-4 h-4 stroke-[2.5]" />
+            </button>
           </div>
         </div>
       )}
 
-      {/* ================= MINIMALIST FOOTER ================= */}
-      <footer className="w-full text-center py-2 text-[11px] text-neutral-600 font-mono tracking-wider">
-        VANGUARD SECURE CIVIC GATEWAY • ZERO-RETENTION MUNICIPAL ARCHITECTURE
+      {/* Footer */}
+      <footer className="w-full text-center py-2 text-[11px] text-neutral-500 font-mono tracking-wider">
+        VANGUARD SECURE CIVIC GATEWAY • MANDATORY CITIZEN VERIFICATION
       </footer>
     </div>
   );

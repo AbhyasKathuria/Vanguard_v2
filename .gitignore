@@ -36,6 +36,7 @@ google-services.json
 GoogleService-Info.plist
 
 # SQLite databases (Keep seed database in prisma/dev.db for Vercel Serverless bundling)
+/dev.db
 *.db-journal
 *.sqlite-journal
 !prisma/dev.db

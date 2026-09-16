@@ -39,14 +39,7 @@ export default function LoginPage() {
         return;
       }
 
-      const role = data.user?.role;
-      let dest = "/citizen/dashboard";
-      if (role === "super_admin" || role === "admin") dest = "/superadmin/dashboard";
-      else if (role === "worker") dest = "/worker/dashboard";
-      else if (role === "volunteer") dest = "/volunteer/dashboard";
-      else if (role === "authority" || role === "higher_authority") dest = "/authority/dashboard";
-
-      window.location.href = dest;
+      window.location.href = "/dashboard";
     } catch (err) {
       console.error("Login error:", err);
       setError("Network error. Please try again.");

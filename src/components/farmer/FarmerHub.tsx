@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import VerifiedFertilizerSellers from "@/components/farmer/VerifiedFertilizerSellers";
 import {
   Wheat,
   Camera,
@@ -73,7 +74,7 @@ const CANAL_SCHEDULES: CanalSchedule[] = [
 ];
 
 export default function FarmerHub() {
-  const [activeTab, setActiveTab] = useState<"disease" | "cattle" | "mandi" | "canal" | "insurance">("disease");
+  const [activeTab, setActiveTab] = useState<"fertilizer" | "disease" | "cattle" | "mandi" | "canal" | "insurance">("fertilizer");
 
   // Crop diagnosis state
   const [cropImage, setCropImage] = useState<string | null>(null);
@@ -160,8 +161,20 @@ export default function FarmerHub() {
       {/* Hub Tabs */}
       <div className="flex flex-wrap items-center gap-2 p-1.5 bg-[#1a1a1a] rounded-2xl border border-white/10">
         <button
+          onClick={() => setActiveTab("fertilizer")}
+          className={`flex-1 min-w-[140px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
+            activeTab === "fertilizer"
+              ? "bg-emerald-600 text-white shadow-xs"
+              : "text-neutral-400 hover:text-white"
+          }`}
+        >
+          <Wheat className="w-3.5 h-3.5 text-emerald-300" />
+          <span>खाद एवं उर्वरक (Fertilizers)</span>
+        </button>
+
+        <button
           onClick={() => setActiveTab("disease")}
-          className={`flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+          className={`flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
             activeTab === "disease"
               ? "bg-emerald-600 text-white shadow-xs"
               : "text-neutral-400 hover:text-white"
@@ -173,7 +186,7 @@ export default function FarmerHub() {
 
         <button
           onClick={() => setActiveTab("cattle")}
-          className={`flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+          className={`flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
             activeTab === "cattle"
               ? "bg-amber-600 text-white shadow-xs"
               : "text-neutral-400 hover:text-white"
@@ -185,7 +198,7 @@ export default function FarmerHub() {
 
         <button
           onClick={() => setActiveTab("mandi")}
-          className={`flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+          className={`flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
             activeTab === "mandi"
               ? "bg-sky-600 text-white shadow-xs"
               : "text-neutral-400 hover:text-white"
@@ -197,7 +210,7 @@ export default function FarmerHub() {
 
         <button
           onClick={() => setActiveTab("canal")}
-          className={`flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+          className={`flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
             activeTab === "canal"
               ? "bg-blue-600 text-white shadow-xs"
               : "text-neutral-400 hover:text-white"
@@ -209,7 +222,7 @@ export default function FarmerHub() {
 
         <button
           onClick={() => setActiveTab("insurance")}
-          className={`flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+          className={`flex-1 min-w-[130px] py-2.5 px-3 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-1.5 cursor-pointer ${
             activeTab === "insurance"
               ? "bg-purple-600 text-white shadow-xs"
               : "text-neutral-400 hover:text-white"
@@ -219,6 +232,9 @@ export default function FarmerHub() {
           <span>फसल बीमा (Fasal Bima)</span>
         </button>
       </div>
+
+      {/* Tab 0: Verified Government-Authorized Fertilizer Sellers */}
+      {activeTab === "fertilizer" && <VerifiedFertilizerSellers />}
 
       {/* Tab 1: AI Crop Disease Scanner */}
       {activeTab === "disease" && (

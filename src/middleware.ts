@@ -1,20 +1,23 @@
 import { jwtVerify } from "jose";
 import { NextRequest, NextResponse } from "next/server";
-import { JWTPayload, UserRole } from "./lib/types";
+import { JWTPayload } from "./lib/types";
 
 const JWT_SECRET = process.env.JWT_SECRET || "vanguard_rural_routing_secret_key_2026_super_secure";
 const SECRET_KEY = new TextEncoder().encode(JWT_SECRET);
 const COOKIE_NAME = "vanguard_auth_token";
 
-const roleDashboardMap: Record<string, string> = {
-  super_admin: "/superadmin/dashboard",
-  admin: "/superadmin/dashboard",
-  citizen: "/citizen/dashboard",
-  worker: "/worker/dashboard",
-  volunteer: "/volunteer/dashboard",
-  authority: "/authority/dashboard",
-  higher_authority: "/authority/dashboard",
-};
+export function getRoleDashboard(session: JWTPayload): string {
+  if (session.role === "citizen") {
+    if (session.citizenProfile === "farmer") return "/farmer";
+    if (session.citizenProfile === "women") return "/citizen/women";
+    return "/citizen/dashboard";
+  }
+  if (session.role === "worker") return "/worker/dashboard";
+  if (session.role === "volunteer") return "/volunteer/dashboard";
+  if (session.role === "authority" || session.role === "higher_authority") return "/authority/dashboard";
+  if (session.role === "super_admin" || session.role === "admin") return "/superadmin/dashboard";
+  return "/citizen/dashboard";
+}
 
 export async function middleware(request: NextRequest) {
   try {
@@ -45,7 +48,35 @@ export async function middleware(request: NextRequest) {
       }
     }
 
-    // Direct dashboard aliases support: /dashboard/citizen, /dashboard/volunteer, /dashboard/authority
+    const isPublicRoute =
+      pathname === "/" ||
+      pathname === "/login" ||
+      pathname === "/signup" ||
+      pathname.startsWith("/auth/");
+
+    // If unauthenticated and trying to access any protected route, redirect to /login
+    if (!session && !isPublicRoute) {
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("from", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
+    // If authenticated and visiting landing / auth screens, redirect to their role dashboard
+    if (session && (pathname === "/" || pathname === "/login" || pathname === "/signup" || pathname.startsWith("/auth/"))) {
+      const target = getRoleDashboard(session);
+      return NextResponse.redirect(new URL(target, request.url));
+    }
+
+    // Dynamic central /dashboard route
+    if (pathname === "/dashboard") {
+      if (!session) {
+        return NextResponse.redirect(new URL("/login?from=/dashboard", request.url));
+      }
+      const target = getRoleDashboard(session);
+      return NextResponse.redirect(new URL(target, request.url));
+    }
+
+    // Direct dashboard alias rewrites
     if (pathname === "/dashboard/citizen") {
       if (!session) return NextResponse.redirect(new URL("/login?from=/dashboard/citizen", request.url));
       return NextResponse.rewrite(new URL("/citizen/dashboard", request.url));
@@ -59,42 +90,21 @@ export async function middleware(request: NextRequest) {
       return NextResponse.rewrite(new URL("/authority/dashboard", request.url));
     }
 
-    // If user is already logged in and visits /login or /signup, redirect to their role dashboard
-    if (session && (pathname === "/login" || pathname === "/signup" || pathname.startsWith("/auth/"))) {
-      const target = roleDashboardMap[session.role] || "/citizen/dashboard";
-      return NextResponse.redirect(new URL(target, request.url));
-    }
-
-    // Protected route prefixes
-    const isCitizenRoute = pathname.startsWith("/citizen");
-    const isWorkerRoute = pathname.startsWith("/worker");
-    const isVolunteerRoute = pathname.startsWith("/volunteer");
-    const isAuthorityRoute = pathname.startsWith("/authority");
-    const isSuperAdminRoute = pathname.startsWith("/superadmin");
-
-    const isProtected =
-      isCitizenRoute ||
-      isWorkerRoute ||
-      isVolunteerRoute ||
-      isAuthorityRoute ||
-      isSuperAdminRoute;
-
-    if (isProtected) {
-      if (!session) {
-        const loginUrl = new URL("/login", request.url);
-        loginUrl.searchParams.set("from", pathname);
-        return NextResponse.redirect(loginUrl);
-      }
+    // Role-specific enforcement for protected sub-routes
+    if (session) {
+      const isCitizenRoute = pathname.startsWith("/citizen");
+      const isWorkerRoute = pathname.startsWith("/worker");
+      const isVolunteerRoute = pathname.startsWith("/volunteer");
+      const isAuthorityRoute = pathname.startsWith("/authority");
+      const isSuperAdminRoute = pathname.startsWith("/superadmin");
 
       // UNIVERSAL ACCESS EXCEPTION:
-      // Allow all authenticated roles (citizen, volunteer, worker, authority, super_admin)
-      // to view the incident details, audit timeline, and dispatch map on /citizen/request/*
+      // Allow all authenticated roles to view incident details, audit timeline, and dispatch map on /citizen/request/*
       if (pathname.startsWith("/citizen/request/")) {
         return NextResponse.next();
       }
 
-      // Role-specific enforcement
-      const userDashboard = roleDashboardMap[session.role] || "/login";
+      const userDashboard = getRoleDashboard(session);
       const isHigherAuth =
         session.role === "authority" ||
         session.role === "higher_authority" ||
@@ -128,15 +138,13 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/",
-    "/login",
-    "/signup",
-    "/auth/:path*",
-    "/dashboard/:path*",
-    "/citizen/:path*",
-    "/worker/:path*",
-    "/volunteer/:path*",
-    "/authority/:path*",
-    "/superadmin/:path*",
+    /*
+     * Match all request paths except:
+     * - _next/static (static files)
+     * - _next/image (image optimization files)
+     * - favicon.ico (favicon file)
+     * - images, icons, logos (.png, .jpg, .jpeg, .svg, .webp)
+     */
+    "/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 };

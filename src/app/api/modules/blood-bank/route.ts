@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { sendBloodDonorPush } from "@/lib/integrations/notifications";
 
 export const dynamic = "force-dynamic";
 
@@ -106,6 +107,15 @@ export async function POST(request: Request) {
         location: true,
       },
     });
+
+    // Real-time W3C Web Push broadcast to verified volunteer donor devices
+    sendBloodDonorPush({
+      district,
+      bloodGroup,
+      units: Number(units) || 1,
+      hospital: hospitalName,
+      actionUrl: "/higher-official/dashboard",
+    }).catch((err) => console.warn("Blood donor push error:", err));
 
     return NextResponse.json({
       success: true,

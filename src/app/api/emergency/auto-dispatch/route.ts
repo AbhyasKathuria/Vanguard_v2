@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { sendEmergencyPush } from "@/lib/integrations/notifications";
 
 // Haversine formula to compute great-circle distance between two GPS coordinates in kilometers
 function calculateHaversineDistance(
@@ -162,6 +163,16 @@ export async function POST(request: Request) {
         });
       }
     }
+
+    // Real-time W3C Web Push with vibration & sound to matched responder
+    sendEmergencyPush({
+      responderId: bestResponder.id,
+      responderName: bestResponder.name,
+      incidentTitle: "🚨 Urgent Emergency Proximity Dispatch",
+      location: bestResponder.location,
+      distanceKm: bestResponder.distanceKm,
+      actionUrl: bestResponder.role === "worker" ? "/worker/dashboard" : "/volunteer/dashboard",
+    }).catch((err) => console.warn("Emergency push dispatch error:", err));
 
     return NextResponse.json({
       success: true,

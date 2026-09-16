@@ -1,6 +1,7 @@
 import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { NextResponse } from "next/server";
+import { sendTaskAssignmentPush } from "@/lib/integrations/notifications";
 
 export async function POST(
   request: Request,
@@ -64,6 +65,14 @@ export async function POST(
         },
       },
     });
+
+    // Real-time W3C Web Push to the assigned worker or volunteer device
+    sendTaskAssignmentPush({
+      assigneeId: assignee.id,
+      requestTitle: updated.description,
+      category: updated.category,
+      actionUrl: assignee.role === "worker" ? "/worker/dashboard" : "/volunteer/dashboard",
+    }).catch((err) => console.warn("Task assignment push error:", err));
 
     return NextResponse.json({ success: true, request: updated });
   } catch (error: any) {

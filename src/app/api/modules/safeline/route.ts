@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getCurrentUser } from "@/lib/auth";
+import { sendSafeLineOfficerPush } from "@/lib/integrations/notifications";
 
 export const dynamic = "force-dynamic";
 
@@ -126,6 +127,14 @@ export async function POST(request: Request) {
         },
       },
     });
+
+    // Strictly privacy-isolated SafeLine push alert (Zero citizen PII, exclusively to authorized Protection Officer)
+    sendSafeLineOfficerPush({
+      anonymousToken,
+      urgency: urgency as string,
+      district,
+      actionUrl: "/citizen/women",
+    }).catch((err) => console.warn("SafeLine officer push error:", err));
 
     return NextResponse.json({
       success: true,

@@ -24,6 +24,7 @@ import {
 } from "lucide-react";
 import SOSScreenPopup from "@/components/SOSScreenPopup";
 import { useEmergencyAlerts } from "@/hooks/useEmergencyAlerts";
+import PushNotificationPrompt from "@/components/PushNotificationPrompt";
 
 export default function WorkerDashboard() {
   const { t } = useLanguage();
@@ -79,6 +80,15 @@ export default function WorkerDashboard() {
     fetchAssignedRequests();
   }, []);
 
+  // Live-Refresh Polling (every 6s for new job assignments)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchAssignedRequests();
+    }, 6000);
+
+    return () => clearInterval(interval);
+  }, []);
+
   const handleUpdateStatus = async (requestId: string, newStatus: string, defaultMessage?: string) => {
     try {
       setSubmittingStatus(true);
@@ -125,6 +135,9 @@ export default function WorkerDashboard() {
       {/* 1-Click Multi-Lingual Dashboard Switcher */}
       <DashboardLanguageBanner />
 
+      {/* Real-time Emergency Push Alerts Registration */}
+      <PushNotificationPrompt role="worker" district={primaryLocation} />
+
       {/* Header */}
       <div className="bg-white p-6 rounded-2xl border border-[#dcdcdc] shadow-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
@@ -135,17 +148,27 @@ export default function WorkerDashboard() {
           <p className="text-xs text-[#707070] mt-0.5">{t.worker.pageDesc}</p>
         </div>
 
-        <button
-          onClick={() => {
-            setRefreshing(true);
-            fetchAssignedRequests();
-          }}
-          disabled={refreshing}
-          className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-[#dcdcdc] hover:bg-[#f5f5f5] text-[#404040] text-xs font-semibold transition-colors cursor-pointer"
-        >
-          <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
-          {t.common.refresh}
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-950/70 border border-emerald-800/60 text-emerald-400 text-xs font-semibold shadow-inner">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span>Live Jobs (6s)</span>
+          </div>
+
+          <button
+            onClick={() => {
+              setRefreshing(true);
+              fetchAssignedRequests();
+            }}
+            disabled={refreshing}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl border border-[#dcdcdc] hover:bg-[#f5f5f5] text-[#404040] text-xs font-semibold transition-colors cursor-pointer"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${refreshing ? "animate-spin" : ""}`} />
+            {t.common.refresh}
+          </button>
+        </div>
       </div>
 
       {/* Real-Time Agricultural & Weather Advisory for Worker Safety */}

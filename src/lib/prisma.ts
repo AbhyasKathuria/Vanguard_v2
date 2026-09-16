@@ -2,9 +2,21 @@ import { PrismaClient } from "@prisma/client";
 import fs from "fs";
 import path from "path";
 
-// Initialize SQLite database location for serverless environments (e.g., Vercel)
+// Initialize Database URL: supports Vercel Prisma Postgres auto-injected URLs or local SQLite
 function resolveDatabaseUrl(): string {
-  // Only use /tmp on actual serverless environments like Vercel or AWS Lambda
+  const envUrl = process.env.DATABASE_URL?.trim();
+
+  // 1. Direct Hosted Database (e.g., Vercel Prisma Postgres auto-injected DATABASE_URL)
+  if (
+    envUrl &&
+    (envUrl.startsWith("postgres://") ||
+      envUrl.startsWith("postgresql://") ||
+      envUrl.startsWith("prisma+postgres://"))
+  ) {
+    return envUrl;
+  }
+
+  // 2. SQLite for Serverless Environments (Vercel Lambda fallback when SQLite is active)
   const isServerless = Boolean(process.env.VERCEL || process.env.AWS_LAMBDA_FUNCTION_NAME);
 
   if (isServerless) {

@@ -8,6 +8,7 @@ import PriorityBadge from "@/components/PriorityBadge";
 import CategoryBadge from "@/components/CategoryBadge";
 import WeatherWidget from "@/components/WeatherWidget";
 import DashboardLanguageBanner from "@/components/DashboardLanguageBanner";
+import PushNotificationPrompt from "@/components/PushNotificationPrompt";
 import { useLanguage } from "@/lib/i18n/context";
 import {
   Shield,
@@ -151,6 +152,17 @@ export default function AuthorityDashboard() {
     setLoading(true);
     fetchAuthorityData();
   }, [statusFilter, categoryFilter]);
+
+  // Live-Refresh Polling (every 6 seconds for real-time queue awareness)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchAuthorityData();
+      if (activeMainTab === "funds") fetchFunds();
+      if (activeMainTab === "assets") fetchAssets();
+    }, 6000);
+
+    return () => clearInterval(interval);
+  }, [statusFilter, categoryFilter, activeMainTab]);
 
   const handleManualAssign = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -330,6 +342,9 @@ export default function AuthorityDashboard() {
       {/* Multi-Lingual Dashboard Switcher */}
       <DashboardLanguageBanner />
 
+      {/* Real-time Emergency Push Alerts Registration */}
+      <PushNotificationPrompt role="authority" district="Rampur" />
+
       {/* SAMPLE 2: Photographic Hero Band */}
       <div className="relative rounded-3xl overflow-hidden border border-neutral-800 shadow-2xl bg-neutral-950">
         <Image
@@ -360,6 +375,14 @@ export default function AuthorityDashboard() {
           </div>
 
           <div className="flex items-center gap-3">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-950/70 border border-emerald-800/60 text-emerald-400 text-xs font-semibold shadow-inner">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <span>Live Queue (6s)</span>
+            </div>
+
             <button
               onClick={() => {
                 setRefreshing(true);

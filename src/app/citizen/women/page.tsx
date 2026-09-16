@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import DashboardLanguageBanner from "@/components/DashboardLanguageBanner";
@@ -106,6 +106,25 @@ export default function WomenDashboardPage() {
       setSearching(false);
     }
   };
+
+  // Live-Refresh Polling for active SafeLine tracking code (every 8s)
+  useEffect(() => {
+    if (!searchToken.trim() || !searchResult || searchResult.notFound) return;
+
+    const interval = setInterval(async () => {
+      try {
+        const res = await fetch("/api/modules/safeline?code=" + encodeURIComponent(searchToken.trim()));
+        const data = await res.json();
+        if (res.ok && data.records && data.records.length > 0) {
+          setSearchResult(data.records[0]);
+        }
+      } catch {
+        // silent background polling
+      }
+    }, 8000);
+
+    return () => clearInterval(interval);
+  }, [searchToken, searchResult]);
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">

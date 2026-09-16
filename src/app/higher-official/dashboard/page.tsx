@@ -78,6 +78,15 @@ export default function HigherOfficialMedicalDashboard() {
     fetchBloodData();
   }, [groupFilter]);
 
+  // Live-Refresh Polling (every 6s for blood requisitions & donor telemetry)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchBloodData();
+    }, 6000);
+
+    return () => clearInterval(interval);
+  }, [groupFilter]);
+
   const handleCreateBloodRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!patientName || !contactPhone) return;
@@ -166,6 +175,14 @@ export default function HigherOfficialMedicalDashboard() {
           </div>
 
           <div className="flex items-center gap-3 w-full md:w-auto">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-red-950/70 border border-red-800/60 text-red-400 text-xs font-semibold shadow-inner">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+              </span>
+              <span>Live Requisitions (6s)</span>
+            </div>
+
             <button
               onClick={() => {
                 setRefreshing(true);

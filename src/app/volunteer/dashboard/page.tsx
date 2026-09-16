@@ -30,6 +30,7 @@ import {
 } from "lucide-react";
 import SOSScreenPopup from "@/components/SOSScreenPopup";
 import { useEmergencyAlerts } from "@/hooks/useEmergencyAlerts";
+import PushNotificationPrompt from "@/components/PushNotificationPrompt";
 
 export default function VolunteerDashboard() {
   const { t } = useLanguage();
@@ -89,6 +90,15 @@ export default function VolunteerDashboard() {
   useEffect(() => {
     setLoading(true);
     fetchRequests();
+  }, [activeTab]);
+
+  // Live-Refresh Polling (every 6s for emergency alerts & assignments)
+  useEffect(() => {
+    const interval = setInterval(() => {
+      fetchRequests();
+    }, 6000);
+
+    return () => clearInterval(interval);
   }, [activeTab]);
 
   // 1-Click Fast Action: Claim / Accept Task
@@ -200,6 +210,9 @@ export default function VolunteerDashboard() {
       {/* 1-Click Multi-Lingual Dashboard Switcher */}
       <DashboardLanguageBanner />
 
+      {/* Real-time Emergency Push Alerts Registration */}
+      <PushNotificationPrompt role="volunteer" district="Rampur" />
+
       {/* Top Header Card */}
       <div className="bg-neutral-900 border border-neutral-800 p-6 rounded-2xl shadow-xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
@@ -215,17 +228,27 @@ export default function VolunteerDashboard() {
           </div>
         </div>
 
-        <button
-          onClick={() => {
-            setRefreshing(true);
-            fetchRequests();
-          }}
-          disabled={refreshing}
-          className="p-2.5 rounded-xl border border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 transition-colors cursor-pointer"
-          title="Refresh assignments"
-        >
-          <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin text-emerald-400" : ""}`} />
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-emerald-950/70 border border-emerald-800/60 text-emerald-400 text-xs font-semibold shadow-inner">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span>Live Tasks (6s)</span>
+          </div>
+
+          <button
+            onClick={() => {
+              setRefreshing(true);
+              fetchRequests();
+            }}
+            disabled={refreshing}
+            className="p-2.5 rounded-xl border border-neutral-700 bg-neutral-800 hover:bg-neutral-700 text-neutral-200 transition-colors cursor-pointer"
+            title="Refresh assignments"
+          >
+            <RefreshCw className={`w-4 h-4 ${refreshing ? "animate-spin text-emerald-400" : ""}`} />
+          </button>
+        </div>
       </div>
 
       {/* Scannable Ragtime KPI Metric Cards */}

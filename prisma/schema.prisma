@@ -1,0 +1,225 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String            @id @default(cuid())
+  name         String
+  phone        String            @unique
+  email        String?           @unique
+  passwordHash String?
+  role         String            // "citizen", "worker", "authority", "volunteer", "super_admin"
+  language     String            @default("en")
+  location     String
+  district     String            @default("Rampur")
+  active       Boolean           @default(true)
+  isOnline      Boolean           @default(false)
+  lastKnownLat  Float?
+  lastKnownLng  Float?
+  lastHeartbeat DateTime?
+  createdAt    DateTime          @default(now())
+
+  workerProfile    WorkerProfile?
+  volunteerProfile VolunteerProfile?
+
+  createdRequests  Request[]         @relation("CitizenRequests")
+  assignedRequests Request[]         @relation("AssignedRequests")
+  complaints       Complaint[]
+  requestUpdates   RequestUpdate[]
+  taskAssignments  TaskAssignment[]
+}
+
+model WorkerProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  profession   String
+  availability Boolean  @default(true)
+  location     String
+  district     String?  @default("Rampur")
+  latitude     Float?
+  longitude    Float?
+  verified     Boolean  @default(false)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VolunteerProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  organization String
+  area         String
+  district     String?  @default("Rampur")
+  latitude     Float?
+  longitude    Float?
+  availability Boolean  @default(true)
+  verified     Boolean  @default(false)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Request {
+  id            String          @id @default(cuid())
+  userId        String
+  category      String          // "health", "civic", "emergency", "farming", "other"
+  description   String
+  priority      String          // "low", "medium", "high"
+  location      String
+  district      String          @default("Rampur")
+  latitude      Float?
+  longitude     Float?
+  attachmentUrl String?
+  status        String          @default("open") // "open", "assigned", "in_progress", "resolved"
+  assignedToId  String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+
+  user         User            @relation("CitizenRequests", fields: [userId], references: [id], onDelete: Cascade)
+  assignedTo   User?           @relation("AssignedRequests", fields: [assignedToId], references: [id])
+  updates      RequestUpdate[]
+}
+
+model RequestUpdate {
+  id        String   @id @default(cuid())
+  requestId String
+  userId    String
+  message   String
+  status    String   // "open", "assigned", "in_progress", "resolved"
+  timestamp DateTime @default(now())
+
+  request   Request  @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Complaint {
+  id                   String   @id @default(cuid())
+  userId               String?
+  user                 User?    @relation(fields: [userId], references: [id])
+  title                String
+  category             String   // "Infrastructure", "Public Safety", "Sanitation", "Animal Welfare", "Medical", "Water", "Electricity", "Health", "Roads", "Agriculture"
+  urgency              String   // "Low", "Moderate", "High", "Critical"
+  urgencyReasoning     String?
+  priority             String?  @default("Normal") // "Emergency", "Urgent", "High", "Normal"
+  description          String
+  detectedTags         String   // JSON string array e.g. ["#pothole", "#drainage"]
+  recommendedAuthority String?
+  riskScore            Int      @default(50)
+  location             String
+  village              String?
+  panchayat            String?
+  block                String?
+  district             String   @default("Rampur")
+  latitude             Float?
+  longitude            Float?
+  mediaUrl             String?
+  audioUrl             String?
+  videoUrl             String?
+  isAnonymous          Boolean  @default(false)
+  clusterId            String?
+  escalationLevel      Int      @default(0) // 0: Panchayat, 1: Block (BDO), 2: District (DM)
+  status               String           @default("submitted") // "draft", "submitted", "in_investigation", "resolved"
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+  taskAssignments      TaskAssignment[]
+  inspections          Inspection[]
+}
+
+model AdministrativeDivision {
+  id           String   @id @default(cuid())
+  state        String   @default("Uttar Pradesh")
+  district     String
+  block        String
+  panchayat    String
+  village      String
+  latitude     Float?
+  longitude    Float?
+  boundaryJson String?  // GeoJSON boundary representation
+  createdAt    DateTime @default(now())
+}
+
+model Inspection {
+  id             String    @id @default(cuid())
+  complaintId    String?
+  inspectorId    String?
+  facilityType   String    // "school", "phc", "water_source", "road", "ration_shop"
+  facilityName   String?
+  location       String?
+  checklistData  String    // JSON string checklist audit
+  evidencePhotos String?   // JSON array of photo URLs
+  watermarkLat   Float?
+  watermarkLng   Float?
+  notes          String?
+  completedAt    DateTime  @default(now())
+
+  complaint      Complaint? @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+}
+
+model TaskAssignment {
+  id           String    @id @default(cuid())
+  complaintId  String
+  volunteerId  String?
+  status       String    @default("pending") // "pending", "assigned", "in_progress", "resolved"
+  priority     String    @default("medium")
+  notes        String?
+  acceptedAt   DateTime?
+  completedAt  DateTime?
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  complaint    Complaint @relation(fields: [complaintId], references: [id], onDelete: Cascade)
+  volunteer    User?     @relation(fields: [volunteerId], references: [id])
+}
+
+model Vulnerability {
+  id                String   @id @default(cuid())
+  title             String
+  category          String   // "Structural", "Electrical", "Hydrological", "Environmental", "Traffic"
+  severity          String   // "Critical", "High", "Moderate", "Low"
+  threatScore       Float    // 0 - 100 base score
+  populationDensity String   // "Dense Urban", "Market Hub", "Residential", "Rural Hamlet"
+  affectedEstimate  Int      @default(500)
+  timeToDecayDays   Int      @default(30)
+  decayFactor       Float    @default(1.2)
+  location          String
+  district          String   @default("Rampur")
+  latitude          Float
+  longitude         Float
+  status            String   @default("active") // "active", "mitigated", "inspecting"
+  mitigationPlan    String?
+  reportedBy        String?  @default("AI Threat Engine")
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+model CallLog {
+  id              String   @id @default(cuid())
+  callerName      String?
+  callerPhone     String?
+  scenarioTitle   String
+  urgency         String   // "Critical", "High", "Moderate"
+  status          String   // "completed", "dispatched", "aborted"
+  transcriptJson  String   // JSON array of messages
+  dispatchUnit    String?
+  estimatedEta    String?
+  location        String?
+  durationSeconds Int      @default(0)
+  createdAt       DateTime @default(now())
+}
+
+model TriageLog {
+  id               String   @id @default(cuid())
+  type             String   // "human" or "veterinary"
+  patientType      String?  // "Adult", "Pediatric", "Stray Dog", "Domestic Cat", "Bovine", etc.
+  symptoms         String
+  severity         String   // "Code Red", "Code Orange", "Code Yellow", "Code Green"
+  priorityScore    Int      @default(50)
+  vitalSigns       String?  // JSON string
+  firstAidProtocol String
+  matchedServices  String?  // JSON array of matched hospitals / NGOs
+  dispatchedSos    Boolean  @default(false)
+  location         String?
+  createdAt        DateTime @default(now())
+}
+

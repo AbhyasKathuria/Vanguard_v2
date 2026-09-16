@@ -1,0 +1,212 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans:wght@400;500;600;700;800&display=swap');
+@import "leaflet/dist/leaflet.css";
+@import "tailwindcss";
+
+
+
+@theme {
+  --font-sans: 'Noto Sans', system-ui, -apple-system, sans-serif;
+  
+  --color-primary: var(--primary);
+  --color-accent: var(--accent);
+  --color-accent-soft: var(--accent-soft);
+  --color-accent-hover: var(--accent-hover);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-danger: var(--danger);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-bg: var(--bg);
+  --color-text: var(--text);
+  --color-text-muted: var(--text-muted);
+  --color-text-light: var(--text-light);
+  --color-border: var(--border);
+  
+  --color-sev-green: #16A34A;
+  --color-sev-yellow: #EAB308;
+  --color-sev-orange: #EA580C;
+  --color-sev-red: #DC2626;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+:root {
+  --bg:          #F4F6FB;
+  --surface:     #FFFFFF;
+  --surface-2:   #F1F5F9;
+  --surface-3:   #E8EDF5;
+  --text:        #0F172A;
+  --text-muted:  #64748B;
+  --text-light:  #94A3B8;
+  --border:      #E2E8F0;
+  --accent:      #1B6FD8;
+  --accent-soft: #EFF6FF;
+  --accent-hover:#1558B0;
+  --success:     #16A34A;
+  --warning:     #D97706;
+  --danger:      #DC2626;
+  --purple:      #7C3AED;
+  --teal:        #0891B2;
+  --shadow-sm:   0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow:      0 4px 12px rgba(0,0,0,0.08);
+  --shadow-lg:   0 8px 24px rgba(0,0,0,0.12);
+  --radius-sm:   8px;
+  --radius:      12px;
+  --radius-lg:   16px;
+  --radius-xl:   20px;
+}
+
+[data-theme="dark"] {
+  --bg:          #0A1628;
+  --surface:     #142038;
+  --surface-2:   #1C2E45;
+  --surface-3:   #243552;
+  --text:        #F1F5F9;
+  --text-muted:  #94A3B8;
+  --text-light:  #64748B;
+  --border:      #1E3A5F;
+  --accent:      #3B82F6;
+  --accent-soft: #1E3A5F;
+  --accent-hover:#2563EB;
+  --success:     #22C55E;
+  --warning:     #FBBF24;
+  --danger:      #F87171;
+  --purple:      #A78BFA;
+  --teal:        #22D3EE;
+  --shadow-sm:   0 1px 3px rgba(0,0,0,0.3);
+  --shadow:      0 4px 12px rgba(0,0,0,0.4);
+  --shadow-lg:   0 8px 24px rgba(0,0,0,0.5);
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body, #root { margin:0; padding:0; width:100%; overflow-x:hidden; }
+img, svg, video { max-width:100%; display:block; }
+button { font-family:inherit; }
+input, textarea, select { font-family:inherit; max-width:100%; }
+
+/* Prevent any flex/grid child from blowing out its container */
+.app-safe * { min-width: 0; }
+
+/* safety max-width fallback for unsized images */
+img:not([width]):not([style*="width"]) { max-width: 48px; }
+
+html, body, #root {
+  height: 100%;
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Noto Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 16px;
+  line-height: 1.7;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Force all backgrounds to use variables */
+.app-bg { background: var(--bg) !important; }
+.app-surface { background: var(--surface) !important; }
+.app-surface-2 { background: var(--surface-2) !important; }
+.app-text { color: var(--text) !important; }
+.app-text-muted { color: var(--text-muted) !important; }
+.app-border { border-color: var(--border) !important; }
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+/* Inputs */
+input, textarea, select {
+  background: var(--surface-2) !important;
+  color: var(--text) !important;
+  border: 1.5px solid var(--border) !important;
+  border-radius: var(--radius) !important;
+  font-family: inherit !important;
+  font-size: 14px !important;
+  outline: none !important;
+}
+input::placeholder, textarea::placeholder {
+  color: var(--text-light) !important;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 3px var(--accent-soft) !important;
+}
+
+/* Buttons base */
+button { font-family: inherit; cursor: pointer; }
+
+/* Cards */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow 0.2s, transform 0.2s;
+}
+.card:hover {
+  box-shadow: var(--shadow);
+  transform: translateY(-1px);
+}
+
+/* Severity colors */
+.sev-red    { background: #FEF2F2; color: #DC2626; border: 1px solid #FECACA; }
+.sev-orange { background: #FFF7ED; color: #EA580C; border: 1px solid #FED7AA; }
+.sev-yellow { background: #FFFBEB; color: #D97706; border: 1px solid #FDE68A; }
+.sev-green  { background: #F0FDF4; color: #16A34A; border: 1px solid #BBF7D0; }
+
+[data-theme="dark"] .sev-red    { background: #450A0A; color: #FCA5A5; border-color: #7F1D1D; }
+[data-theme="dark"] .sev-orange { background: #431407; color: #FDBA74; border-color: #7C2D12; }
+[data-theme="dark"] .sev-yellow { background: #422006; color: #FCD34D; border-color: #78350F; }
+[data-theme="dark"] .sev-green  { background: #052E16; color: #86EFAC; border-color: #14532D; }
+
+/* Animations */
+@keyframes pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.5; transform: scale(1.3); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideIn {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(0); }
+}
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Leaflet dark mode */
+[data-theme="dark"] .leaflet-tile { filter: brightness(0.6) contrast(1.2) saturate(0.8) hue-rotate(220deg); }
+[data-theme="dark"] .leaflet-container { background: var(--bg); }
+
+[data-theme="dark"] {
+  /* Force all inputs/textareas/selects to be visible */
+  input, textarea, select {
+    color: #F1F5F9 !important;
+    background: #1C2E45 !important;
+  }
+  
+  /* Force placeholder text visible */
+  input::placeholder, textarea::placeholder {
+    color: #64748B !important;
+  }
+
+  /* Map tiles: ensure readable in dark mode */
+  .leaflet-tile-pane {
+    filter: brightness(0.75) contrast(1.1);
+  }
+  
+  /* Ensure card borders visible */
+  .card, [style*="var(--surface)"] {
+    border-color: #1E3A5F;
+  }
+}
+
+[data-theme="dark"] .leaflet-tile-pane {
+  filter: brightness(0.85) contrast(1.05) saturate(0.9);
+}

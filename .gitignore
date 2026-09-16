@@ -10,12 +10,30 @@ out/
 build/
 dist/
 
-# Environment variables
+# Environment variables & API keys (Never commit secrets!)
 .env
-.env.local
-.env.development.local
-.env.test.local
-.env.production.local
+.env.*
+.env*.local
+*.env
+!.env.example
+!.env.template
+
+# Secret Keys, Tokens & Certificates
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+*.p12
+*.token
+token*.json
+credentials.json
+client_secret*.json
+serviceAccountKey.json
+service-account*.json
+firebase-adminsdk*.json
+google-services.json
+GoogleService-Info.plist
 
 # SQLite databases (Keep seed database in prisma/dev.db for Vercel Serverless bundling)
 *.db-journal

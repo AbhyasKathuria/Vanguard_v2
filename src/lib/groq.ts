@@ -143,30 +143,52 @@ RESPONSE STYLE GUIDELINES:
 /**
  * Built-in intelligent fallback responses when Groq API keys are rotating or offline
  */
-function getSmartFallbackResponse(query: string): string {
+export function getSmartFallbackResponse(query: string): string {
   const q = query.toLowerCase();
 
-  // Menstrual & Women's Health
-  if (q.includes("period") || q.includes("menstru") || q.includes("cramp") || q.includes("pad") || q.includes("pcod") || q.includes("pcos") || q.includes("sexual")) {
-    return "🌸 **Women's Health & Menstrual Care:**\n• **For Cramps:** Apply a warm compress/hot water bag on lower belly, drink warm ginger tea, and do gentle child's pose stretches.\n• **Hygiene:** Change pads every 4-6 hours. If using cloth, wash thoroughly with soap and dry under direct sunlight.\n• **When to see a doctor:** Very heavy bleeding (soaking pad in <1 hr), severe unbearable pain, or periods missed >2 months. You can also request a local health worker in VANGUARD! 🛡️✨";
+  // Menstrual & Women's Health (Hindi + English + Kannada)
+  if (
+    q.includes("period") || q.includes("menstru") || q.includes("cramp") || q.includes("pad") ||
+    q.includes("pcod") || q.includes("pcos") || q.includes("sexual") ||
+    q.includes("माहवारी") || q.includes("पीरियड") || q.includes("दर्द") || q.includes("ಗರ್ಭ")
+  ) {
+    return "🌸 **महिला स्वास्थ्य एवं मासिक धर्म देखभाल (Women's Health):**\n• **दर्द निवारण:** पेट के निचले हिस्से पर गर्म पानी की थैली से सेक करें और गुनगुना पानी या अदरक वाली चाय पिएं।\n• **स्वच्छता:** पैड को हर 4-6 घंटे में बदलें। कपड़े का उपयोग करने पर साबुन से धोकर धूप में सुखाएं।\n• **डॉक्टर से कब मिलें:** अत्यधिक रक्तस्राव (<1 घंटे में पैड भीगना) या असहनीय दर्द होने पर तुरंत PHC जाएं या VANGUARD में महिला स्वास्थ्य सहायता चुनें! 🛡️✨";
   }
 
-  // Farming & Crop Advisory
-  if (q.includes("crop") || q.includes("soil") || q.includes("farm") || q.includes("wheat") || q.includes("rice") || q.includes("cotton") || q.includes("season") || q.includes("pest")) {
-    return "🌾 **Agricultural & Crop Guide:**\n• **Black Soil:** Best for Cotton, Soybean, Jowar (moisture-rich, ideal temp 25-32°C).\n• **Alluvial Soil:** Best for Wheat (Rabi: 15-22°C), Paddy (Kharif: 25-35°C), Sugarcane.\n• **Red/Sandy Loam:** Best for Groundnut, Mustard, Millets (Bajra, Ragi), Vegetables.\n• **Pest Control:** Use neem oil spray (5ml/L water) for leaf pests, and rotate with pulses to naturally enrich soil nitrogen! 💧☀️";
+  // Farming & Crop Advisory (Hindi + English + Indic)
+  if (
+    q.includes("crop") || q.includes("soil") || q.includes("farm") || q.includes("wheat") ||
+    q.includes("rice") || q.includes("cotton") || q.includes("season") || q.includes("pest") ||
+    q.includes("फसल") || q.includes("खाद") || q.includes("कीट") || q.includes("यूरिया") ||
+    q.includes("गेहूं") || q.includes("धान") || q.includes("ಬೆಳೆ") || q.includes("ಗೊಬ್ಬರ")
+  ) {
+    return "🌾 **कृषि एवं फसल परामर्श (Agricultural Advisory):**\n• **उर्वरक सरकारी दर:** यूरिया (₹266.50/45kg), डीएपी (₹1,350/50kg)। ओवर-चार्जिंग पर VANGUARD में शिकायत दर्ज करें।\n• **कीट नियंत्रण:** एफिड्स/सफेद मक्खी पर 5 मिली नीम का तेल प्रति लीटर पानी में मिलाकर छिड़काव करें।\n• **मिट्टी स्वास्थ्य:** फसल चक्र अपनाएं (दलहन फसलें) जिससे मिट्टी में नाइट्रोजन प्राकृतिक रूप से समृद्ध हो! 💧☀️";
   }
 
-  // Medical First Aid
-  if (q.includes("fever") || q.includes("first aid") || q.includes("dehydrat") || q.includes("ors") || q.includes("burn") || q.includes("cut")) {
-    return "🩺 **Basic First Aid & Health Tips:**\n• **Dehydration/ORS:** Mix 6 teaspoons sugar + 1/2 teaspoon salt in 1 liter boiled clean water.\n• **Burns:** Cool under running tap water for 10-15 minutes (never use ice/butter/toothpaste).\n• **High Fever/Chest Pain:** Seek immediate Primary Health Center (PHC) care or raise a HIGH-PRIORITY Emergency in VANGUARD! 🚨";
+  // Medical First Aid & Emergency (Hindi + English + Indic)
+  if (
+    q.includes("fever") || q.includes("first aid") || q.includes("dehydrat") || q.includes("ors") ||
+    q.includes("burn") || q.includes("cut") || q.includes("बुखार") || q.includes("चोट") ||
+    q.includes("जलन") || q.includes("ओआरएस") || q.includes("दवा") || q.includes("ಜ್ವರ")
+  ) {
+    return "🩺 **प्राथमिक चिकित्सा एवं स्वास्थ्य परामर्श (First Aid):**\n• **डिहाइड्रेशन / ओआरएस:** 1 लीटर उबले साफ पानी में 6 चम्मच चीनी + 1/2 चम्मच नमक मिलाकर पिएं।\n• **जलने पर:** जले हुए स्थान पर 10-15 मिनट तक बहता ठंडा पानी डालें (बर्फ या घी न लगाएं)।\n• **गंभीर लक्षण:** तेज बुखार (>103°F) या सीने में दर्द होने पर तत्काल VANGUARD पर 'आपातकालीन एम्बुलेंस SOS' दबाएं! 🚨";
+  }
+
+  // Water & Electricity Civic Grievances
+  if (
+    q.includes("water") || q.includes("pipe") || q.includes("electric") || q.includes("wire") ||
+    q.includes("पानी") || q.includes("बिजली") || q.includes("सड़क") || q.includes("नल") ||
+    q.includes("नीरु") || q.includes("ವಿದ್ಯುತ್")
+  ) {
+    return "⚡ **नागरिक समस्या समाधान (Civic Assistance):**\n• टूटे पाइप, गंदे पानी या लटकते बिजली के तारों की शिकायत दर्ज करने के लिए होमपेज पर **'नई शिकायत दर्ज करें'** बटन दबाएं।\n• आपका आवेदन निकटतम प्रमाणित कारीगर (लाइनमैन/प्लंबर) को स्वतः 15 मिनट में आवंटित हो जाएगा! 🛡️";
   }
 
   // Routing & Workflow
-  if (q.includes("routing") || q.includes("how it works") || q.includes("role") || q.includes("worker") || q.includes("volunteer")) {
-    return "⚡ **How VANGUARD Works:**\n1. You describe your problem in plain text.\n2. Emergency & Health ➔ HIGH Priority; Civic ➔ MEDIUM Priority; Farming ➔ LOW Priority.\n3. The system matches the nearest **verified** worker or volunteer in your village and displays their contact card!\n4. Track live progress in your status history timeline! 🛡️";
+  if (q.includes("routing") || q.includes("how it works") || q.includes("काम कैसे") || q.includes("नियम")) {
+    return "⚡ **VANGUARD कैसे काम करता है:**\n1. अपनी समस्या बोलकर या लिखकर दर्ज करें।\n2. AI स्वतः समस्या की गंभीरता (आपातकालीन / सामान्य) निर्धारित करता है।\n3. आपके ग्राम पंचायत के निकटतम सत्यापित कार्यकर्ता या स्वयंसेवक को सीधे अलर्ट भेजा जाता है।\n4. अपनी शिकायत की लाइव स्थिति टाइमलाइन पर ट्रैक करें! 🛡️";
   }
 
-  return "👋 Hi! I'm **VanguardBot** (🛡️🌸🌾)! I can help you with:\n• 🌸 **Women's Menstrual & Reproductive Health**\n• 🩺 **First Aid & Basic Medical Help**\n• 🌾 **Farming, Crops, Soil & Climate Advisory**\n• ⚡ **Civic & Village Service Routing**\n\nWhat would you like to ask?";
+  return "👋 नमस्ते! मैं **VanguardBot** (🛡️🌸🌾) हूँ!\nमैं आपकी निम्नलिखित विषयों में सहायता कर सकता हूँ:\n• 🌸 **महिला स्वास्थ्य, माहवारी एवं स्वच्छता**\n• 🩺 **प्राथमिक चिकित्सा एवं आपातकालीन SOS**\n• 🌾 **खेती, फसल रोग, खाद दर एवं मौसम चेतावनी**\n• ⚡ **नागरिक एवं पंचायत सेवा समाधान**\n\nआप क्या पूछना चाहते हैं?";
 }
 
 export async function queryGroqChatbot(messages: { role: string; content: string }[]): Promise<string> {
@@ -177,12 +199,12 @@ export async function queryGroqChatbot(messages: { role: string; content: string
     return getSmartFallbackResponse(lastUserMessage);
   }
 
-  // Active Groq models in order of priority
+  // Official high-speed Groq models in order of priority
   const models = [
-    "openai/gpt-oss-120b",
-    "openai/gpt-oss-20b",
-    "qwen/qwen3.6-27b",
-    "groq/compound",
+    "llama-3.3-70b-versatile",
+    "llama-3.1-8b-instant",
+    "mixtral-8x7b-32768",
+    "gemma2-9b-it",
   ];
 
   let attempts = 0;

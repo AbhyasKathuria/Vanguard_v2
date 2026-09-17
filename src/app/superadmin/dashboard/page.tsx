@@ -6,6 +6,7 @@ import StatusBadge from "@/components/StatusBadge";
 import PriorityBadge from "@/components/PriorityBadge";
 import CategoryBadge from "@/components/CategoryBadge";
 import DashboardLanguageBanner from "@/components/DashboardLanguageBanner";
+import { useLanguage } from "@/lib/i18n/context";
 import { checkAllIntegrationsHealth, ServiceHealthStatus } from "@/lib/integrations/health";
 import {
   Sliders,
@@ -25,8 +26,12 @@ import {
   ExternalLink,
   Zap,
 } from "lucide-react";
+import SOSScreenPopup from "@/components/SOSScreenPopup";
+import { useEmergencyAlerts } from "@/hooks/useEmergencyAlerts";
 
 export default function SuperAdminDashboard() {
+  const { t } = useLanguage();
+  const { currentAlert, dismissAlert, acceptAlert } = useEmergencyAlerts();
   const [requests, setRequests] = useState<any[]>([]);
   const [authorities, setAuthorities] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -569,6 +574,9 @@ export default function SuperAdminDashboard() {
           </div>
         </div>
       )}
+
+      {/* Real-time Emergency SOS Alert for SuperAdmin */}
+      <SOSScreenPopup alert={currentAlert} onDismiss={dismissAlert} onAccept={acceptAlert} />
     </div>
   );
 }

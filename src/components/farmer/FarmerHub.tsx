@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import Link from "next/link";
 import VerifiedFertilizerSellers from "@/components/farmer/VerifiedFertilizerSellers";
 import DisasterAwarenessCard from "@/components/disaster/DisasterAwarenessCard";
+import DashboardLanguageBanner from "@/components/DashboardLanguageBanner";
+import { useLanguage } from "@/lib/i18n/context";
 import {
   Wheat,
   Camera,
@@ -75,6 +77,7 @@ const CANAL_SCHEDULES: CanalSchedule[] = [
 ];
 
 export default function FarmerHub() {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<"fertilizer" | "disease" | "cattle" | "mandi" | "canal" | "insurance">("fertilizer");
 
   // Crop diagnosis state
@@ -140,6 +143,9 @@ export default function FarmerHub() {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto text-white">
+      {/* Multi-lingual 1-click switcher */}
+      <DashboardLanguageBanner />
+
       {/* Header */}
       <div className="bg-gradient-to-r from-emerald-900 to-neutral-900 p-6 sm:p-8 rounded-3xl border border-emerald-500/30 shadow-2xl relative overflow-hidden">
         <div className="flex items-center gap-2.5 mb-2">

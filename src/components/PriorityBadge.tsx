@@ -1,5 +1,8 @@
+"use client";
+
 import React from "react";
 import { RequestPriority } from "@/lib/types";
+import { useLanguage } from "@/lib/i18n/context";
 
 interface PriorityBadgeProps {
   priority: RequestPriority | string;
@@ -7,7 +10,8 @@ interface PriorityBadgeProps {
 }
 
 export default function PriorityBadge({ priority, className = "" }: PriorityBadgeProps) {
-  const norm = priority.toLowerCase();
+  const { t } = useLanguage();
+  const norm = (priority || "").toLowerCase();
 
   switch (norm) {
     case "high":
@@ -15,7 +19,7 @@ export default function PriorityBadge({ priority, className = "" }: PriorityBadg
         <span
           className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wider bg-[#404040] text-white border border-[#262626] ${className}`}
         >
-          High Priority
+          {t.common.highPriority || "High Priority"}
         </span>
       );
     case "medium":
@@ -23,7 +27,7 @@ export default function PriorityBadge({ priority, className = "" }: PriorityBadg
         <span
           className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wider bg-[#dcdcdc] text-[#404040] border border-[#a6a6a6] ${className}`}
         >
-          Medium
+          {t.common.mediumPriority || "Medium"}
         </span>
       );
     case "low":
@@ -31,7 +35,7 @@ export default function PriorityBadge({ priority, className = "" }: PriorityBadg
         <span
           className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium uppercase tracking-wider bg-[#f5f5f5] text-[#707070] border border-[#dcdcdc] ${className}`}
         >
-          Low
+          {t.common.lowPriority || "Low"}
         </span>
       );
     default:

@@ -2,6 +2,7 @@ import { getCurrentUser } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { RequestStatus } from "@/lib/types";
 import { NextResponse } from "next/server";
+import { sendStatusUpdatePush } from "@/lib/integrations/notifications";
 
 export async function PATCH(
   request: Request,
@@ -111,6 +112,16 @@ export async function PATCH(
         },
       });
 
+      // Dispatch real-time push to the citizen reporter
+      if (existingRequest.userId) {
+        sendStatusUpdatePush({
+          recipientUserId: existingRequest.userId,
+          title: `Service Status: ${status?.toUpperCase()}`,
+          body: message || `Your ${existingRequest.category} request is now marked as ${status}.`,
+          actionUrl: `/citizen/request/${cleanId}`,
+        }).catch(() => {});
+      }
+
       return NextResponse.json({ success: true, request: updated });
     }
 
@@ -127,6 +138,16 @@ export async function PATCH(
         where: { id: cleanId },
         data: { status: status || "in_progress" },
       });
+
+      // Dispatch real-time push to the citizen reporter
+      if (existingComplaint.userId) {
+        sendStatusUpdatePush({
+          recipientUserId: existingComplaint.userId,
+          title: `Grievance Status: ${status?.toUpperCase()}`,
+          body: message || `Your complaint "${existingComplaint.title}" is now ${status}.`,
+          actionUrl: `/citizen/dashboard`,
+        }).catch(() => {});
+      }
 
       // Update or create linked task assignment
       await prisma.taskAssignment.upsert({

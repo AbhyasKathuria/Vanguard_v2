@@ -21,9 +21,8 @@ interface RoleOption {
   icon: any;
   title: string;
   titleEn: string;
-  subtitle: string;
   badge: string;
-  features: string[];
+  pills: string[];
   themeColor: string;
   borderColor: string;
   activeBg: string;
@@ -36,15 +35,9 @@ const ROLES: RoleOption[] = [
     citizenProfile: "farmer",
     icon: Wheat,
     title: "किसान भाई (Farmer)",
-    titleEn: "Agrarian & Cattle Care Hub",
-    subtitle: "Fertilizer price caps, authorized sellers, live mandi rates, canal water schedule & crop health.",
+    titleEn: "Agrarian & Mandi Hub",
     badge: "Agri Hub",
-    features: [
-      "Govt-Authorized Fertilizer Sellers Directory (Urea, DAP, NPK)",
-      "Live APMC Mandi commodity price ticker",
-      "Canal irrigation water schedule & tail-end alerts",
-      "AI crop disease diagnostic scanner",
-    ],
+    pills: ["🌾 APMC Mandi & Canal", "🧪 Fertilizer & Crop AI"],
     themeColor: "text-emerald-700 dark:text-emerald-400",
     borderColor: "border-emerald-600",
     activeBg: "bg-emerald-50/90 dark:bg-emerald-950/40 border-emerald-600",
@@ -55,15 +48,9 @@ const ROLES: RoleOption[] = [
     citizenProfile: "general",
     icon: Shield,
     title: "सामान्य नागरिक (Citizen)",
-    titleEn: "Civic Governance & Services",
-    subtitle: "File public grievances, track municipal repair timelines, check welfare schemes & blood banks.",
+    titleEn: "Civic Redress & Welfare",
     badge: "Civic Hub",
-    features: [
-      "One-click multi-lingual grievance submission",
-      "Live SLA escalation & department tracking",
-      "Verified local blood bank & donation center directory",
-      "Direct government welfare scheme eligibility checker",
-    ],
+    pills: ["🏛️ Grievance Redressal", "🩸 Blood Bank & Schemes"],
     themeColor: "text-sky-700 dark:text-sky-400",
     borderColor: "border-sky-600",
     activeBg: "bg-sky-50/90 dark:bg-sky-950/40 border-sky-600",
@@ -74,15 +61,9 @@ const ROLES: RoleOption[] = [
     citizenProfile: "general",
     icon: Wrench,
     title: "कारीगर / कामगार (Worker)",
-    titleEn: "Municipal Worker & Field Dispatch",
-    subtitle: "View assigned civic repair tasks, update job progress with photo verification & claim wages.",
+    titleEn: "Field Dispatch & Repair",
     badge: "Worker Board",
-    features: [
-      "Assigned job queue for sanitation, water & electrical works",
-      "Job status updater with photo timestamp evidence",
-      "Direct navigation coordinates to problem spots",
-      "Immediate work completion confirmation",
-    ],
+    pills: ["🔧 Field Repair Queue", "📸 Photo GPS Verification"],
     themeColor: "text-amber-700 dark:text-amber-400",
     borderColor: "border-amber-600",
     activeBg: "bg-amber-50/90 dark:bg-amber-950/40 border-amber-600",
@@ -92,16 +73,10 @@ const ROLES: RoleOption[] = [
     role: "citizen",
     citizenProfile: "women",
     icon: HeartHandshake,
-    title: "महिला सहायता (Women Assistance)",
-    titleEn: "SafeLine Dedicated Protection",
-    subtitle: "Confidential SOS reporting, harassment redressal, female welfare schemes & zero-PII isolation.",
+    title: "महिला सहायता (Women)",
+    titleEn: "SafeLine Protection",
     badge: "SafeLine",
-    features: [
-      "Zero-PII confidential harassment reporting",
-      "Direct dispatch to female protection officers",
-      "Dedicated women & child development welfare assistance",
-      "Discreet emergency quick-exit protection trigger",
-    ],
+    pills: ["🛡️ Confidential SOS", "🔒 Zero-PII Redressal"],
     themeColor: "text-rose-700 dark:text-rose-400",
     borderColor: "border-rose-600",
     activeBg: "bg-rose-50/90 dark:bg-rose-950/40 border-rose-600",
@@ -182,20 +157,20 @@ export default function RoleOnboardingPage() {
               }`}
             >
               <div>
-                {/* Top row: Icon + Radio circle */}
-                <div className="flex items-start justify-between mb-3">
+                {/* Top row: 56px Icon + Radio & Badge */}
+                <div className="flex items-center justify-between mb-4">
                   <div
-                    className={`w-12 h-12 rounded-2xl flex items-center justify-center border ${
+                    className={`w-14 h-14 rounded-2xl flex items-center justify-center border transition-all ${
                       isSelected
-                        ? "bg-white text-black border-white shadow-md"
-                        : "bg-neutral-800 border-neutral-700 text-neutral-300"
+                        ? "bg-white text-black border-white shadow-xl"
+                        : "bg-neutral-800 border-neutral-700 text-white"
                     }`}
                   >
-                    <Icon className="w-6 h-6" />
+                    <Icon className="w-8 h-8" />
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold uppercase tracking-wider px-2.5 py-1 rounded-full bg-black/40 border border-white/10 text-neutral-300">
+                    <span className="text-[10px] font-black uppercase tracking-wider px-2.5 py-1 rounded-full bg-black/40 border border-white/10 text-neutral-300 font-mono">
                       {item.badge}
                     </span>
                     <div
@@ -210,26 +185,24 @@ export default function RoleOnboardingPage() {
                   </div>
                 </div>
 
-                {/* Titles */}
-                <h3 className="text-lg sm:text-xl font-black text-white tracking-tight">
+                {/* Bold 1-Line Titles */}
+                <h3 className="text-xl font-black text-white tracking-tight">
                   {item.title}
                 </h3>
                 <p className="text-xs font-semibold text-neutral-400 mt-0.5">
                   {item.titleEn}
                 </p>
-
-                <p className="text-xs text-neutral-300 mt-2.5 leading-relaxed">
-                  {item.subtitle}
-                </p>
               </div>
 
-              {/* Bullet Highlights */}
-              <div className="mt-4 pt-3 border-t border-white/10 space-y-1.5">
-                {item.features.slice(0, 2).map((feat, idx) => (
-                  <div key={idx} className="flex items-center gap-2 text-[11px] text-neutral-300 font-medium">
-                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0" />
-                    <span className="truncate">{feat}</span>
-                  </div>
+              {/* 2 Visual Pill Tags */}
+              <div className="mt-4 pt-3 border-t border-white/10 flex flex-wrap gap-2">
+                {item.pills.map((pill, idx) => (
+                  <span
+                    key={idx}
+                    className="px-3 py-1 rounded-xl bg-white/10 border border-white/15 text-xs text-neutral-200 font-bold"
+                  >
+                    {pill}
+                  </span>
                 ))}
               </div>
             </button>

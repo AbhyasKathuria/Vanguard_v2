@@ -34,6 +34,14 @@ export default async function DynamicDashboardPage() {
   }
 
   if (user.role === "super_admin" || (user.role as string) === "admin") {
+    if (
+      user.id === "usr_higher_medical" ||
+      user.phone === "9876543270" ||
+      user.name?.toLowerCase().includes("dr.") ||
+      user.location === "State Medical Directorate"
+    ) {
+      redirect("/higher-official/dashboard");
+    }
     redirect("/superadmin/dashboard");
   }
 

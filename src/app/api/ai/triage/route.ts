@@ -141,21 +141,23 @@ export async function POST(request: Request) {
         createdRequestId = newRequest.id;
         assignedResponderName = routingResult.matchedPersonnelName || null;
 
-        // 6. Real-Time Audible / Vibration Push Dispatch to Responder
-        if (routingResult.assignedToId) {
-          sendEmergencyPush({
-            responderId: routingResult.assignedToId,
-            responderName: routingResult.matchedPersonnelName,
-            incidentTitle: sosTitle,
-            location: location || district,
-            distanceKm: routingResult.distanceKm,
-            actionUrl: routingResult.matchedRole?.includes("Worker")
-              ? "/worker/dashboard"
-              : "/volunteer/dashboard",
-          }).catch((pushErr) => {
-            console.warn("[API triage] Push dispatch error:", pushErr);
-          });
-        }
+        // 6. Real-Time Audible / Vibration Push Dispatch (Direct + Multi-Tier District Broadcast)
+        sendEmergencyPush({
+          responderId: routingResult.assignedToId || null,
+          responderName: routingResult.matchedPersonnelName || null,
+          incidentTitle: sosTitle,
+          location: location || `${district} Emergency Sector`,
+          district: district || "Rampur",
+          distanceKm: routingResult.distanceKm,
+          category: "emergency",
+          actionUrl: routingResult.matchedRole?.includes("Worker")
+            ? "/worker/dashboard"
+            : routingResult.assignedToId
+            ? "/volunteer/dashboard"
+            : "/authority/dashboard",
+        }).catch((pushErr) => {
+          console.warn("[API triage] Push dispatch error:", pushErr);
+        });
       } catch (dispatchErr) {
         console.error("[API triage] Full emergency dispatch error:", dispatchErr);
       }

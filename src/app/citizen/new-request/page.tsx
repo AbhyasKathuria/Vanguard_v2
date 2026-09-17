@@ -230,12 +230,12 @@ export default function NewRequestPage() {
         )}
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Category Selector */}
+          {/* Category Selector - Large Icon Cards (Low-Literacy Friendly) */}
           <div>
             <label className="block text-xs font-bold uppercase tracking-wider text-[#707070] mb-2">
               {t.citizen.selectCategoryLabel}
             </label>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {categories.map((c) => {
                 const Icon = c.icon;
                 const isSelected = category === c.id;
@@ -244,24 +244,33 @@ export default function NewRequestPage() {
                     key={c.id}
                     type="button"
                     onClick={() => setCategory(c.id)}
-                    className={`p-3 text-left rounded-xl border transition-all cursor-pointer ${
+                    className={`p-4 text-center rounded-2xl border-2 transition-all cursor-pointer flex flex-col items-center justify-center gap-2.5 ${
                       isSelected
-                        ? "bg-[#dcdcdc] border-[#404040] shadow-xs"
-                        : "bg-[#f5f5f5] border-[#dcdcdc] hover:bg-[#eaeaea]"
+                        ? "bg-neutral-900 text-white border-neutral-900 shadow-lg scale-[1.02]"
+                        : "bg-[#f8f9fa] border-neutral-200 text-neutral-800 hover:bg-[#eaeaea] hover:border-neutral-350"
                     }`}
                   >
-                    <div className="flex items-center justify-between gap-1 mb-1">
-                      <div className="flex items-center gap-2">
-                        <Icon className={`w-4 h-4 ${isSelected ? "text-[#404040]" : "text-[#707070]"}`} />
-                        <span className={`text-xs font-bold ${isSelected ? "text-[#262626]" : "text-[#404040]"}`}>
-                          {c.label}
-                        </span>
-                      </div>
-                      <span className={`text-[10px] px-1.5 py-0.5 rounded border font-semibold ${c.badgeColor}`}>
+                    <div
+                      className={`w-12 h-12 rounded-xl flex items-center justify-center border transition-all ${
+                        isSelected
+                          ? "bg-white text-neutral-900 border-white shadow"
+                          : "bg-white text-neutral-700 border-neutral-200"
+                      }`}
+                    >
+                      <Icon className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <span className={`text-xs sm:text-sm font-extrabold block ${isSelected ? "text-white" : "text-neutral-900"}`}>
+                        {c.label}
+                      </span>
+                      <span className={`text-[10px] font-bold uppercase tracking-wider mt-1 inline-block px-2 py-0.5 rounded-full ${
+                        isSelected
+                          ? "bg-white/20 text-white border border-white/30"
+                          : "bg-neutral-200 text-neutral-600"
+                      }`}>
                         {c.priority}
                       </span>
                     </div>
-                    <p className="text-[11px] text-[#707070] leading-tight">{c.desc}</p>
                   </button>
                 );
               })}

@@ -82,6 +82,8 @@ export default function AssistedVoiceReporter({ onSuccess, onCancel }: AssistedV
 
   const recognitionRef = useRef<any>(null);
 
+  const [showReview, setShowReview] = useState(false);
+
   // Initialize Web Speech API if supported
   useEffect(() => {
     if (typeof window !== "undefined") {
@@ -106,6 +108,13 @@ export default function AssistedVoiceReporter({ onSuccess, onCancel }: AssistedV
         recognition.onerror = (err: any) => {
           console.warn("Speech recognition error:", err);
           setIsListening(false);
+          if (err.error === "not-allowed") {
+            setErrorMessage(
+              lang === "hi"
+                ? "🎙️ माइक्रोफ़ोन की अनुमति ब्लॉक है। कृपया नीचे दिए गए बॉक्स में टाइप करें।"
+                : "🎙️ Microphone permission denied. Please type in the box below."
+            );
+          }
         };
 
         recognition.onend = () => {
@@ -137,11 +146,12 @@ export default function AssistedVoiceReporter({ onSuccess, onCancel }: AssistedV
     speakQuestion(textToSpeak);
   }, [currentStepIdx, lang]);
 
-  const toggleListening = () => {
+  const toggleListening = async () => {
+    setErrorMessage("");
     if (!speechSupported) {
-      alert(
+      setErrorMessage(
         lang === "hi"
-          ? "आपका ब्राउज़र स्पीच रिकग्निशन को सपोर्ट नहीं करता। कृपया टेक्स्ट टाइप करें।"
+          ? "आपका ब्राउज़र स्पीच रिकग्निशन को सपोर्ट नहीं करता। कृपया नीचे टाइप करें।"
           : "Speech recognition not supported in this browser. Please type below."
       );
       return;
@@ -150,16 +160,34 @@ export default function AssistedVoiceReporter({ onSuccess, onCancel }: AssistedV
     if (isListening) {
       recognitionRef.current?.stop();
       setIsListening(false);
-    } else {
+      return;
+    }
+
+    // Verify microphone permission via getUserMedia
+    if (typeof navigator !== "undefined" && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       try {
-        if (recognitionRef.current) {
-          recognitionRef.current.lang = lang === "hi" ? "hi-IN" : "en-IN";
-          recognitionRef.current.start();
-          setIsListening(true);
-        }
-      } catch (e) {
-        console.warn("Speech start failed:", e);
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach((track) => track.stop());
+      } catch (micErr: any) {
+        console.warn("[Mic Permission Denied]", micErr);
+        setErrorMessage(
+          lang === "hi"
+            ? "🎙️ माइक्रोफ़ोन एक्सेस अस्वीकार कर दिया गया है। कृपया ब्राउज़र सेटिंग्स में अनुमति दें या नीचे टाइप करें।"
+            : "🎙️ Microphone access denied. Please enable mic in browser settings or type below."
+        );
+        return;
       }
+    }
+
+    try {
+      if (recognitionRef.current) {
+        recognitionRef.current.lang = lang === "hi" ? "hi-IN" : "en-IN";
+        recognitionRef.current.start();
+        setIsListening(true);
+      }
+    } catch (e) {
+      console.warn("Speech start failed:", e);
+      setIsListening(false);
     }
   };
 
@@ -256,6 +284,90 @@ export default function AssistedVoiceReporter({ onSuccess, onCancel }: AssistedV
               {lang === "hi" ? "वापस जाएँ" : "Close"}
             </button>
           )}
+        </div>
+      </div>
+    );
+  }
+
+  // INTENT CONFIRMATION STEP: Citizen reviews what the AI understood before filing
+  if (showReview) {
+    const predictedCategory =
+      problemText.toLowerCase().includes("पानी") || problemText.toLowerCase().includes("water")
+        ? "Water Supply (जल आपूर्ति)"
+        : problemText.toLowerCase().includes("बिजली") || problemText.toLowerCase().includes("electric")
+        ? "Electricity & Power (विद्युत)"
+        : problemText.toLowerCase().includes("सड़क") || problemText.toLowerCase().includes("road")
+        ? "Roads & Transport (सड़क)"
+        : problemText.toLowerCase().includes("गाय") || problemText.toLowerCase().includes("पशु") || problemText.toLowerCase().includes("animal")
+        ? "Animal Welfare (पशु कल्याण)"
+        : "Civic Infrastructure (नागरिक अवसंरचना)";
+
+    return (
+      <div className="bg-[#171717] rounded-3xl border border-sky-500/30 p-6 sm:p-8 text-white shadow-2xl animate-in zoom-in-95 space-y-6">
+        <div className="flex items-center gap-3 pb-4 border-b border-white/10">
+          <div className="p-3 rounded-2xl bg-sky-500/20 text-sky-400 border border-sky-500/30">
+            <Sparkles className="w-6 h-6" />
+          </div>
+          <div>
+            <span className="text-[10px] font-black uppercase tracking-wider text-sky-400">
+              {lang === "hi" ? "AI समझ एवं शिकायत समीक्षा" : "AI Intent & Entity Verification"}
+            </span>
+            <h3 className="text-lg font-black text-white">
+              {lang === "hi" ? "कृपया पुष्टि करें: क्या यह जानकारी सही है?" : "Please Confirm: Did AI understand correctly?"}
+            </h3>
+          </div>
+        </div>
+
+        {/* Breakdown Card */}
+        <div className="bg-[#242424] rounded-2xl p-5 border border-white/10 space-y-3.5 text-xs">
+          <div className="flex justify-between items-center pb-2 border-b border-white/10">
+            <span className="text-neutral-400">{lang === "hi" ? "समस्या श्रेणी (Category):" : "Category:"}</span>
+            <span className="px-2.5 py-1 bg-sky-950 text-sky-300 font-bold rounded-lg border border-sky-800">
+              {predictedCategory}
+            </span>
+          </div>
+          <div className="flex justify-between items-center pb-2 border-b border-white/10">
+            <span className="text-neutral-400">{lang === "hi" ? "स्थान (Location):" : "Location:"}</span>
+            <span className="font-bold text-white text-right truncate max-w-[200px]">
+              {locationText || (lang === "hi" ? "ग्राम पंचायत क्षेत्र" : "Gram Panchayat Sector")}
+            </span>
+          </div>
+          <div className="flex justify-between items-center pb-2 border-b border-white/10">
+            <span className="text-neutral-400">{lang === "hi" ? "अवधि (Duration):" : "Duration:"}</span>
+            <span className="font-mono text-neutral-200">{durationText || (lang === "hi" ? "हाल ही में" : "Recent")}</span>
+          </div>
+          <div className="pt-1">
+            <span className="text-neutral-400 block mb-1">{lang === "hi" ? "समस्या का विवरण (Problem):" : "Problem Summary:"}</span>
+            <p className="p-3 rounded-xl bg-black/40 text-neutral-200 leading-relaxed font-mono text-[11px]">
+              {problemText}
+            </p>
+          </div>
+        </div>
+
+        {errorMessage && (
+          <div className="p-3 rounded-xl bg-red-500/20 border border-red-500/40 text-red-300 text-xs font-bold flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{errorMessage}</span>
+          </div>
+        )}
+
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 pt-2">
+          <button
+            type="button"
+            onClick={() => setShowReview(false)}
+            className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-neutral-300 text-xs font-bold transition-colors cursor-pointer"
+          >
+            {lang === "hi" ? "✏️ विवरण बदलें (Edit)" : "✏️ Edit Details"}
+          </button>
+          <button
+            type="button"
+            disabled={submitting}
+            onClick={handleFinalSubmit}
+            className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-black flex items-center justify-center gap-2 shadow-lg shadow-emerald-600/30 transition-all cursor-pointer"
+          >
+            {submitting ? <Loader2 className="w-4 h-4 animate-spin" /> : <CheckCircle2 className="w-4 h-4" />}
+            <span>{lang === "hi" ? "✅ पुष्टि करें और शिकायत दर्ज करें" : "✅ Confirm & Submit Grievance"}</span>
+          </button>
         </div>
       </div>
     );

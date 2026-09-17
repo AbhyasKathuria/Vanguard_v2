@@ -70,37 +70,138 @@ async function dispatchToSubscription(sub: any, payload: { title: string; body: 
 }
 
 /**
- * 1. SOS / Emergency Proximity Push Alert
- * Reaches the matched worker or volunteer phone immediately.
+ * 1. SOS / Emergency Proximity Push Alert (Multi-Tier Broadcast)
+ * - Directly targets assigned worker / volunteer phone.
+ * - Always alerts District Local Authority and Medical Command (Dr. Swaminathan).
+ * - If unassigned (open emergency), broadcasts to all verified responders in the district.
  */
 export async function sendEmergencyPush({
   responderId,
   responderName,
   incidentTitle,
   location,
+  district,
   distanceKm,
-  actionUrl = "/worker/dashboard",
+  category = "emergency",
+  actionUrl,
 }: {
-  responderId: string;
-  responderName?: string;
+  responderId?: string | null;
+  responderName?: string | null;
   incidentTitle: string;
   location?: string;
+  district?: string;
   distanceKm?: number;
+  category?: string;
   actionUrl?: string;
 }) {
-  const subscriptions = await prisma.pushSubscription.findMany({
-    where: { userId: responderId },
+  // 1. Direct assigned responder devices
+  const responderSubs = responderId
+    ? await prisma.pushSubscription.findMany({ where: { userId: responderId } })
+    : [];
+
+  // 2. Local Authorities, Medical Command (Doctor), and SuperAdmins
+  const authoritySubs = await prisma.pushSubscription.findMany({
+    where: {
+      OR: [
+        { role: "authority", ...(district ? { district } : {}) },
+        { role: "super_admin" },
+        { user: { role: "authority" } },
+        { user: { role: "super_admin" } },
+        { user: { id: "usr_higher_medical" } },
+      ],
+    },
   });
 
-  const title = "🚨 URGENT EMERGENCY DISPATCH ASSIGNED";
-  const body = `${incidentTitle} near ${location || "your sector"} (${distanceKm ? distanceKm + " km away" : "Nearby"}). Open immediately to accept.`;
+  // 3. Broadcast to all verified volunteers & workers in district if unassigned
+  const broadcastSubs = !responderId && district
+    ? await prisma.pushSubscription.findMany({
+        where: {
+          district,
+          OR: [
+            { role: "volunteer" },
+            { role: "worker" },
+          ],
+        },
+      })
+    : [];
 
-  for (const sub of subscriptions) {
-    await dispatchToSubscription(sub, { title, body, url: actionUrl, tag: "sos-alert" });
+  // Deduplicate subscriptions by endpoint
+  const subMap = new Map<string, any>();
+  for (const s of [...responderSubs, ...authoritySubs, ...broadcastSubs]) {
+    subMap.set(s.endpoint, s);
+  }
+  const allSubs = Array.from(subMap.values());
+
+  const title = responderId
+    ? `🚨 URGENT EMERGENCY DISPATCH ASSIGNED`
+    : `🚨 BROADCAST: UNASSIGNED EMERGENCY SOS (${district || "Local Sector"})`;
+
+  const body = `${incidentTitle} near ${location || "your sector"}${
+    distanceKm ? ` (${distanceKm} km away)` : ""
+  }. Open immediately to review and respond.`;
+
+  let deliveredCount = 0;
+  for (const sub of allSubs) {
+    const defaultUrl =
+      sub.role === "authority"
+        ? "/authority/dashboard"
+        : sub.role === "volunteer"
+        ? "/volunteer/dashboard"
+        : sub.role === "super_admin"
+        ? "/higher-official/dashboard"
+        : "/worker/dashboard";
+
+    const res = await dispatchToSubscription(sub, {
+      title,
+      body,
+      url: actionUrl || defaultUrl,
+      tag: "sos-alert",
+    });
+    if (res.success) deliveredCount++;
   }
 
-  console.log(`📢 [Emergency Push Sent] ${subscriptions.length} devices notified for responder ${responderName || responderId}`);
-  return { success: true, devicesCount: subscriptions.length };
+  console.log(
+    `📢 [Emergency Push Sent] ${deliveredCount} of ${allSubs.length} devices notified (Responder: ${
+      responderName || responderId || "Broadcast"
+    }, District: ${district || "Any"})`
+  );
+  return { success: true, devicesCount: deliveredCount, totalQueued: allSubs.length };
+}
+
+/**
+ * 1b. General Status Update Push Alert
+ * Dispatched to Citizen / Reporter when their grievance or service request status updates.
+ */
+export async function sendStatusUpdatePush({
+  recipientUserId,
+  title,
+  body,
+  actionUrl,
+  tag,
+}: {
+  recipientUserId: string;
+  title: string;
+  body: string;
+  actionUrl?: string;
+  tag?: string;
+}) {
+  const subscriptions = await prisma.pushSubscription.findMany({
+    where: { userId: recipientUserId },
+  });
+
+  let delivered = 0;
+  for (const sub of subscriptions) {
+    const res = await dispatchToSubscription(sub, {
+      title,
+      body,
+      url: actionUrl || "/citizen/dashboard",
+      tag: tag || `status-${Date.now()}`,
+    });
+    if (res.success) delivered++;
+  }
+
+  console.log(`🔔 [Status Update Push] ${delivered}/${subscriptions.length} devices notified for user ${recipientUserId}`);
+  return { success: true, devicesCount: delivered };
 }
 
 /**

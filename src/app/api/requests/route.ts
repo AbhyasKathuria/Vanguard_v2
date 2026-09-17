@@ -201,20 +201,21 @@ export async function POST(request: Request) {
       },
     });
 
-    // Real-time Push Alert for Emergency and Health dispatches
-    if (
-      (category === "emergency" || category === "health") &&
-      routingResult.assignedToId
-    ) {
+    // Real-time Push Alert for Emergency and Health dispatches (Direct + Broadcast)
+    if (category === "emergency" || category === "health") {
       sendEmergencyPush({
-        responderId: routingResult.assignedToId,
-        responderName: routingResult.matchedPersonnelName,
+        responderId: routingResult.assignedToId || null,
+        responderName: routingResult.matchedPersonnelName || null,
         incidentTitle: `🚨 Critical ${category.toUpperCase()} Dispatch: ${description.slice(0, 45)}...`,
         location: location,
+        district: finalDistrict,
         distanceKm: routingResult.distanceKm,
+        category,
         actionUrl: routingResult.matchedRole?.includes("Worker")
           ? "/worker/dashboard"
-          : "/volunteer/dashboard",
+          : routingResult.assignedToId
+          ? "/volunteer/dashboard"
+          : "/authority/dashboard",
       }).catch((pushErr) => {
         console.warn("[Requests API] Push dispatch warning:", pushErr);
       });

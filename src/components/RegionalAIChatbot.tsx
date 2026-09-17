@@ -219,8 +219,8 @@ export default function RegionalAIChatbot() {
     }
   };
 
-  // STT Voice Input
-  const toggleSpeechRecognition = () => {
+  // STT Voice Input with getUserMedia permission check
+  const toggleSpeechRecognition = async () => {
     if (typeof window === "undefined") return;
     const SpeechRecognition =
       (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
@@ -234,6 +234,22 @@ export default function RegionalAIChatbot() {
       recognitionRef.current?.stop();
       setIsListening(false);
       return;
+    }
+
+    // Verify microphone permission via getUserMedia
+    if (typeof navigator !== "undefined" && navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        stream.getTracks().forEach((track) => track.stop());
+      } catch (micErr: any) {
+        console.warn("[Mic Permission Denied / Blocked in Chatbot]", micErr);
+        alert(
+          currentLocale === "hi"
+            ? "🎙️ माइक्रोफ़ोन की अनुमति नहीं मिली। कृपया नीचे टाइप करके संदेश भेजें।"
+            : "🎙️ Microphone permission blocked. Please type your message below."
+        );
+        return;
+      }
     }
 
     try {
@@ -258,7 +274,10 @@ export default function RegionalAIChatbot() {
         setIsListening(false);
         handleSend(transcript);
       };
-      recognition.onerror = () => setIsListening(false);
+      recognition.onerror = (err: any) => {
+        console.warn("Speech recognition error:", err);
+        setIsListening(false);
+      };
       recognition.onend = () => setIsListening(false);
 
       recognitionRef.current = recognition;

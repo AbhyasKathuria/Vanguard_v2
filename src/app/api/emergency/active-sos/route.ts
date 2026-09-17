@@ -9,25 +9,27 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // Check recent complaints with urgency = 'Critical' AND emergency/safety category
+    // Check recent complaints with urgency = 'Critical' OR emergency/medical/animal category
     const criticalComplaints = await prisma.complaint.findMany({
       where: {
         status: { in: ["draft", "submitted", "in_investigation"] },
-        urgency: "Critical",
-        category: { in: ["Emergency", "emergency", "Medical"] },
+        OR: [
+          { urgency: "Critical" },
+          { category: { in: ["Emergency", "emergency", "Medical", "Animal Welfare"] } },
+        ],
       },
       orderBy: { createdAt: "desc" },
-      take: 10,
+      take: 15,
       include: {
         user: { select: { id: true, name: true, phone: true } },
         taskAssignments: true,
       },
     });
 
-    // Check recent requests with category = 'emergency' (open or assigned)
+    // Check recent requests with category = 'emergency' or 'health' (open or assigned)
     const criticalRequests = await prisma.request.findMany({
       where: {
-        category: "emergency",
+        category: { in: ["emergency", "health"] },
         OR: [
           { status: "open" },
           user.role === "authority" || user.role === "super_admin"
@@ -36,7 +38,7 @@ export async function GET(request: Request) {
         ],
       },
       orderBy: { createdAt: "desc" },
-      take: 10,
+      take: 15,
       include: {
         user: { select: { id: true, name: true, phone: true } },
       },

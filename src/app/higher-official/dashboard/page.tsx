@@ -31,7 +31,11 @@ import {
   LayoutGrid,
   List,
   Siren,
+  Stethoscope,
+  ClipboardList,
 } from "lucide-react";
+import SOSScreenPopup from "@/components/SOSScreenPopup";
+import { useEmergencyAlerts } from "@/hooks/useEmergencyAlerts";
 
 export default function HigherOfficialMedicalDashboard() {
   const { t } = useLanguage();
@@ -57,18 +61,36 @@ export default function HigherOfficialMedicalDashboard() {
   const [contactPhone, setContactPhone] = useState("");
   const [urgency, setUrgency] = useState<string>("emergency");
   const [submittingBlood, setSubmittingBlood] = useState(false);
+  const { currentAlert, dismissAlert, acceptAlert } = useEmergencyAlerts();
   const [broadcastAlert, setBroadcastAlert] = useState<string | null>(null);
 
   const [medicalAlerts, setMedicalAlerts] = useState<any[]>([]);
+  const [medicalComplaints, setMedicalComplaints] = useState<any[]>([]);
+  const [healthRequests, setHealthRequests] = useState<any[]>([]);
 
-  const fetchMedicalAlerts = async () => {
+  const fetchMedicalData = async () => {
     try {
-      const res = await fetch("/api/emergency/active-sos");
-      const data = await res.json();
-      if (res.ok && data.alerts) {
-        setMedicalAlerts(data.alerts);
+      const [sosRes, complaintsRes, requestsRes] = await Promise.all([
+        fetch("/api/emergency/active-sos"),
+        fetch("/api/complaints?category=Medical"),
+        fetch("/api/requests?category=health"),
+      ]);
+
+      if (sosRes.ok) {
+        const d = await sosRes.json();
+        if (d.alerts) setMedicalAlerts(d.alerts);
       }
-    } catch {}
+      if (complaintsRes.ok) {
+        const d = await complaintsRes.json();
+        if (d.complaints) setMedicalComplaints(d.complaints);
+      }
+      if (requestsRes.ok) {
+        const d = await requestsRes.json();
+        if (d.requests) setHealthRequests(d.requests);
+      }
+    } catch (err) {
+      console.warn("Medical data fetch error:", err);
+    }
   };
 
   const fetchBloodData = async () => {
@@ -89,14 +111,14 @@ export default function HigherOfficialMedicalDashboard() {
 
   useEffect(() => {
     fetchBloodData();
-    fetchMedicalAlerts();
+    fetchMedicalData();
   }, [groupFilter]);
 
   // Live-Refresh Polling (every 6s for blood requisitions & donor telemetry)
   useEffect(() => {
     const interval = setInterval(() => {
       fetchBloodData();
-      fetchMedicalAlerts();
+      fetchMedicalData();
     }, 6000);
 
     return () => clearInterval(interval);
@@ -651,6 +673,56 @@ export default function HigherOfficialMedicalDashboard() {
             )}
           </div>
 
+          {/* Medical Complaints & Civic Grievances Feed */}
+          <div className="bg-neutral-900 border border-neutral-800 rounded-3xl p-6 shadow-xl space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-800 pb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-2xl bg-sky-950/90 border border-sky-800 text-sky-400 flex items-center justify-center font-bold">
+                  <Stethoscope className="w-5 h-5" />
+                </div>
+                <div>
+                  <span className="text-[10px] font-black uppercase tracking-wider text-sky-400">
+                    Patient Grievances &amp; Health Complaints
+                  </span>
+                  <h3 className="text-base font-bold text-white">Registered Medical Complaints</h3>
+                </div>
+              </div>
+              <span className="px-3 py-1 bg-neutral-950 border border-neutral-800 rounded-full text-xs font-mono font-bold text-neutral-300">
+                {medicalComplaints.length} Records
+              </span>
+            </div>
+
+            {medicalComplaints.length === 0 ? (
+              <div className="py-6 text-center text-xs text-neutral-400">
+                No active medical complaints reported in the current sector.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+                {medicalComplaints.map((c) => (
+                  <div key={c.id} className="bg-neutral-950 border border-neutral-800 rounded-2xl p-4 space-y-2.5 shadow-md">
+                    <div className="flex items-center justify-between">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-neutral-800 text-sky-300">
+                        {c.category} • {c.urgency || "MEDIUM"}
+                      </span>
+                      <span className="text-[10px] text-neutral-500 font-mono">{c.district || "Rampur"}</span>
+                    </div>
+                    <h4 className="text-sm font-bold text-white line-clamp-1">{c.title}</h4>
+                    <p className="text-xs text-neutral-400 line-clamp-2">{c.description}</p>
+                    <div className="pt-2 border-t border-neutral-800/80 flex items-center justify-between text-xs text-neutral-400">
+                      <span className="flex items-center gap-1 truncate max-w-[150px]">
+                        <MapPin className="w-3.5 h-3.5 text-neutral-500" />
+                        {c.location || "District Sector"}
+                      </span>
+                      <span className={`font-mono text-[10px] font-bold uppercase ${c.status === "resolved" ? "text-emerald-400" : "text-amber-400"}`}>
+                        {c.status}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
           {[
             {
@@ -861,6 +933,9 @@ export default function HigherOfficialMedicalDashboard() {
           </div>
         </div>
       )}
+
+      {/* Real-time SOS Screen Popup for Medical Command Doctor */}
+      <SOSScreenPopup alert={currentAlert} onDismiss={dismissAlert} onAccept={acceptAlert} />
     </div>
   );
 }

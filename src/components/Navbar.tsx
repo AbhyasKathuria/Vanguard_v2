@@ -140,7 +140,7 @@ export default function Navbar({ user }: NavbarProps) {
                 }`}
               >
                 <Sparkles className="w-3.5 h-3.5 text-[#53bdeb]" />
-                <span>Vision AI</span>
+                <span>{t.nav.visionAiReport || "Vision AI"}</span>
               </Link>
               <Link
                 href="/dispatch/simulator"
@@ -151,7 +151,7 @@ export default function Navbar({ user }: NavbarProps) {
                 }`}
               >
                 <Radio className="w-3.5 h-3.5 text-[#25D366]" />
-                <span>AI Calling</span>
+                <span>{t.nav.aiCallingDispatch || "AI Calling"}</span>
               </Link>
               <Link
                 href="/emergency/triage"
@@ -162,7 +162,7 @@ export default function Navbar({ user }: NavbarProps) {
                 }`}
               >
                 <HeartPulse className="w-3.5 h-3.5 text-red-400" />
-                <span>Triage</span>
+                <span>{t.nav.emergencyTriage || "Triage"}</span>
               </Link>
               <Link
                 href="/threat-matrix"
@@ -173,7 +173,7 @@ export default function Navbar({ user }: NavbarProps) {
                 }`}
               >
                 <Activity className="w-3.5 h-3.5 text-amber-300" />
-                <span>Threat Matrix</span>
+                <span>{t.nav.threatHeatmap || "Threat Matrix"}</span>
               </Link>
               <Link
                 href="/farmer"
@@ -184,7 +184,7 @@ export default function Navbar({ user }: NavbarProps) {
                 }`}
               >
                 <span>🌾</span>
-                <span>Kisan Hub</span>
+                <span>{t.nav.farmerHub || "Kisan Hub"}</span>
               </Link>
               <Link
                 href="/simple-mode"
@@ -363,7 +363,7 @@ export default function Navbar({ user }: NavbarProps) {
                 className="px-3 py-1.5 rounded-lg text-xs font-semibold text-[#53bdeb] hover:bg-[#262626] flex items-center gap-1.5"
               >
                 <Sparkles className="w-3.5 h-3.5" />
-                Vision AI
+                {t.nav.visionAiReport || "Vision AI"}
               </Link>
               <Link
                 href="/dispatch/simulator"
@@ -371,7 +371,7 @@ export default function Navbar({ user }: NavbarProps) {
                 className="px-3 py-1.5 rounded-lg text-xs font-semibold text-[#25D366] hover:bg-[#262626] flex items-center gap-1.5"
               >
                 <Radio className="w-3.5 h-3.5" />
-                AI Calling
+                {t.nav.aiCallingDispatch || "AI Calling"}
               </Link>
               <Link
                 href="/emergency/triage"
@@ -379,7 +379,7 @@ export default function Navbar({ user }: NavbarProps) {
                 className="px-3 py-1.5 rounded-lg text-xs font-semibold text-red-400 hover:bg-[#262626] flex items-center gap-1.5"
               >
                 <HeartPulse className="w-3.5 h-3.5" />
-                Triage SOS
+                {t.nav.emergencyTriage || "Triage SOS"}
               </Link>
               <Link
                 href="/threat-matrix"
@@ -387,7 +387,7 @@ export default function Navbar({ user }: NavbarProps) {
                 className="px-3 py-1.5 rounded-lg text-xs font-semibold text-amber-300 hover:bg-[#262626] flex items-center gap-1.5"
               >
                 <Activity className="w-3.5 h-3.5" />
-                Threat Matrix
+                {t.nav.threatHeatmap || "Threat Matrix"}
               </Link>
               <Link
                 href="/farmer"
@@ -395,7 +395,7 @@ export default function Navbar({ user }: NavbarProps) {
                 className="px-3 py-1.5 rounded-lg text-xs font-semibold text-emerald-400 hover:bg-[#262626] flex items-center gap-1.5"
               >
                 <span>🌾</span>
-                {t.nav.farmerHub}
+                {t.nav.farmerHub || "Kisan Hub"}
               </Link>
               <Link
                 href="/simple-mode"
@@ -427,7 +427,7 @@ export default function Navbar({ user }: NavbarProps) {
                 className="px-3 py-1.5 rounded-lg text-xs font-semibold text-emerald-300 hover:bg-[#262626] flex items-center gap-1.5"
               >
                 <span>📡</span>
-                Mesh Relay
+                {t.nav.meshRelay || "Mesh Relay"}
               </Link>
               <Link
                 href="/services"

@@ -44,7 +44,7 @@ function interpretWeatherCode(code: number): { condition: string; isRaining: boo
 }
 
 // Rule-Based Transparent Threshold Disaster Evaluator
-function evaluateDisasterThresholds({
+export function evaluateDisasterThresholds({
   precip24h,
   maxTemp,
   minTemp,
@@ -86,20 +86,32 @@ function evaluateDisasterThresholds({
 
   // 2. Severe Gale Wind & Thunderstorm Risk
   if (maxWind >= 55 || code >= 95) {
+    const isSevere = maxWind >= 55;
     alerts.push({
-      id: "alert-storm-warning",
+      id: isSevere ? "alert-storm-severe" : "alert-storm-warning",
       type: "storm",
-      severity: "Warning",
-      title: "Gale Wind & Thunderstorm Alert",
-      description: `Strong gusts up to ${maxWind} km/h with lightning activity predicted. Risk of tin-roof detachment, tree branch fall, and powerline snapping.`,
-      actionableGuidance: "Keep livestock sheltered away from large standalone trees and unanchored tin sheds. Avoid handling metal farm equipment or operating open tractors during thunder.",
+      severity: isSevere ? "Severe" : "Warning",
+      title: isSevere ? "Severe Gale Storm & Wind Hazard Alert" : "Gale Wind & Thunderstorm Alert",
+      description: `Strong gusts up to ${maxWind} km/h with lightning activity predicted. High hazard of tin-roof detachment, tree branch fall, and powerline snapping.`,
+      actionableGuidance: "Seek sturdy shelter indoors. Keep livestock sheltered away from large standalone trees and unanchored tin sheds. Avoid open roads and handling metal equipment.",
       metric: `${maxWind} km/h Gusts`,
       validHours: "Next 12-18 Hours",
     });
   }
 
   // 3. Severe Heatwave / Loo Warning
-  if (maxTemp >= 42) {
+  if (maxTemp >= 45) {
+    alerts.push({
+      id: "alert-heat-severe",
+      type: "heatwave",
+      severity: "Severe",
+      title: "Severe Heatwave & Hyperthermia Emergency",
+      description: `Extreme ambient temperature reaching ${maxTemp}°C. Critical risk of life-threatening heatstroke for laborers and livestock.`,
+      actionableGuidance: "Halt all outdoor physical labor immediately. Move livestock to cooled shaded enclosures with continuous drinking water. Administer ORS electrolytes.",
+      metric: `${maxTemp}°C Peak`,
+      validHours: "Mid-Day Peak Hours (11:00 AM - 4:00 PM)",
+    });
+  } else if (maxTemp >= 42) {
     alerts.push({
       id: "alert-heat-warning",
       type: "heatwave",
@@ -113,7 +125,18 @@ function evaluateDisasterThresholds({
   }
 
   // 4. Frost / Cold Wave Shock
-  if (minTemp <= 4) {
+  if (minTemp <= 2) {
+    alerts.push({
+      id: "alert-cold-severe",
+      type: "coldwave",
+      severity: "Severe",
+      title: "Severe Ground Frost & Freeze Emergency",
+      description: `Freezing temperatures dropping to ${minTemp}°C. Critical risk of acute frost crystallization, crop loss, and animal hypothermia.`,
+      actionableGuidance: "Ignite perimeter smoke mulch and activate light evening irrigation immediately to protect root warmth. Provide warm bedding for dairy cattle.",
+      metric: `${minTemp}°C Night Minimum`,
+      validHours: "Night to Dawn (2:00 AM - 7:00 AM)",
+    });
+  } else if (minTemp <= 4) {
     alerts.push({
       id: "alert-cold-advisory",
       type: "coldwave",

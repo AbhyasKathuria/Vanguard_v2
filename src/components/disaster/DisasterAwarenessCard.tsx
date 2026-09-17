@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   CloudRain,
   AlertTriangle,
@@ -16,6 +16,10 @@ import {
   MapPin,
   Clock,
   Sparkles,
+  Siren,
+  Volume2,
+  VolumeX,
+  Megaphone,
 } from "lucide-react";
 import { WeatherData, DisasterAlert } from "@/lib/integrations/weather";
 import { useLanguage } from "@/lib/i18n/context";
@@ -35,6 +39,117 @@ export default function DisasterAwarenessCard({
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [isSirenMuted, setIsSirenMuted] = useState(false);
+  const [sirenPlaying, setSirenPlaying] = useState(false);
+  const [audioBlocked, setAudioBlocked] = useState(false);
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const oscillatorRef = useRef<OscillatorNode | null>(null);
+  const sirenTimerRef = useRef<any>(null);
+
+  const stopDisasterSiren = () => {
+    if (sirenTimerRef.current) {
+      clearInterval(sirenTimerRef.current);
+      sirenTimerRef.current = null;
+    }
+    if (oscillatorRef.current) {
+      try { oscillatorRef.current.stop(); } catch(e) {}
+      oscillatorRef.current = null;
+    }
+    if (audioCtxRef.current) {
+      try { audioCtxRef.current.close(); } catch(e) {}
+      audioCtxRef.current = null;
+    }
+    setSirenPlaying(false);
+    setAudioBlocked(false);
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      try { window.speechSynthesis.cancel(); } catch(e) {}
+    }
+  };
+
+  const speakDisasterWarning = (alertItem: DisasterAlert) => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window && !isSirenMuted) {
+      try {
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.resume();
+        const speech = new SpeechSynthesisUtterance(
+          `Severe weather alert in ${location}! ${alertItem.title}. ${alertItem.actionableGuidance}`
+        );
+        speech.rate = 0.95;
+        speech.pitch = 1.0;
+        window.speechSynthesis.speak(speech);
+      } catch (e) {
+        console.warn("Disaster speech warning error:", e);
+      }
+    }
+  };
+
+  const playDisasterSiren = (alertItem?: DisasterAlert) => {
+    if (isSirenMuted) return;
+    try {
+      const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+      if (!AudioCtx) return;
+      if (audioCtxRef.current) {
+        try { audioCtxRef.current.close(); } catch(e) {}
+      }
+      const ctx = new AudioCtx();
+      audioCtxRef.current = ctx;
+
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = "sine";
+      gain.gain.setValueAtTime(0.18, ctx.currentTime);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      // Disaster Civil Defense Siren: Smooth ascending & descending pitch cycle (440Hz -> 760Hz -> 440Hz)
+      osc.frequency.setValueAtTime(440, ctx.currentTime);
+      osc.start();
+      oscillatorRef.current = osc;
+      setSirenPlaying(true);
+
+      let ascending = true;
+      const sweep = () => {
+        if (!oscillatorRef.current || !audioCtxRef.current) return;
+        const t = audioCtxRef.current.currentTime;
+        if (ascending) {
+          oscillatorRef.current.frequency.exponentialRampToValueAtTime(760, t + 1.2);
+        } else {
+          oscillatorRef.current.frequency.exponentialRampToValueAtTime(440, t + 1.2);
+        }
+        ascending = !ascending;
+      };
+      sweep();
+      sirenTimerRef.current = setInterval(sweep, 1200);
+
+      // Handle mobile browser autoplay restriction
+      if (ctx.state === "suspended") {
+        setAudioBlocked(true);
+        const unlock = () => {
+          if (audioCtxRef.current && audioCtxRef.current.state === "suspended") {
+            audioCtxRef.current.resume().then(() => {
+              setAudioBlocked(false);
+              if (alertItem) speakDisasterWarning(alertItem);
+            }).catch(() => {});
+          }
+          window.removeEventListener("click", unlock);
+          window.removeEventListener("touchstart", unlock);
+        };
+        window.addEventListener("click", unlock, { once: true });
+        window.addEventListener("touchstart", unlock, { once: true });
+      } else {
+        setAudioBlocked(false);
+        if (alertItem) speakDisasterWarning(alertItem);
+      }
+    } catch (err) {
+      console.warn("Disaster siren failed to initialize:", err);
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      stopDisasterSiren();
+    };
+  }, []);
 
   const fetchWeather = async () => {
     try {
@@ -55,6 +170,16 @@ export default function DisasterAwarenessCard({
     fetchWeather();
   }, [location]);
 
+  const severeAlert = weather?.disasterAlerts?.find((a) => a.severity === "Severe");
+
+  useEffect(() => {
+    if (severeAlert && !isSirenMuted) {
+      playDisasterSiren(severeAlert);
+    } else if (!severeAlert && sirenPlaying) {
+      stopDisasterSiren();
+    }
+  }, [severeAlert, isSirenMuted]);
+
   const getSeverityBadge = (severity: string) => {
     switch (severity) {
       case "Severe":
@@ -69,6 +194,82 @@ export default function DisasterAwarenessCard({
 
   return (
     <div className={`bg-neutral-900 border border-neutral-800 rounded-3xl p-5 sm:p-6 shadow-xl space-y-5 text-white ${className}`}>
+      {/* Severe Disaster Siren Alert Banner */}
+      {severeAlert && (
+        <div className="p-4 rounded-2xl bg-gradient-to-r from-red-950 via-rose-950 to-neutral-950 border-2 border-red-600 shadow-2xl shadow-red-950/80 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 animate-pulse">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-2xl bg-red-600 text-white flex items-center justify-center shrink-0 shadow-lg shadow-red-600/50">
+              <Siren className="w-6 h-6 animate-bounce" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className="text-[10px] font-black uppercase tracking-wider text-white bg-red-700 px-2 py-0.5 rounded border border-red-500 font-mono flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+                  Civil Defense Siren Active
+                </span>
+                <span className="text-[11px] text-red-300 font-bold font-mono">
+                  {location} Sector
+                </span>
+              </div>
+              <p className="text-xs sm:text-sm text-white font-black mt-1">
+                {severeAlert.title} — {severeAlert.metric}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 w-full sm:w-auto justify-end flex-wrap">
+            {audioBlocked && (
+              <button
+                type="button"
+                onClick={() => {
+                  if (audioCtxRef.current && audioCtxRef.current.state === "suspended") {
+                    audioCtxRef.current.resume().then(() => {
+                      setAudioBlocked(false);
+                      speakDisasterWarning(severeAlert);
+                    });
+                  }
+                }}
+                className="px-3.5 py-1.5 rounded-xl bg-yellow-400 hover:bg-yellow-300 text-black text-xs font-black flex items-center gap-1.5 cursor-pointer shadow-lg animate-bounce"
+              >
+                <Volume2 className="w-4 h-4" />
+                <span>Tap to Unmute Siren</span>
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                if (sirenPlaying) {
+                  stopDisasterSiren();
+                  setIsSirenMuted(true);
+                } else {
+                  setIsSirenMuted(false);
+                  playDisasterSiren(severeAlert);
+                  speakDisasterWarning(severeAlert);
+                }
+              }}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-black flex items-center gap-1.5 border transition-all cursor-pointer ${
+                sirenPlaying
+                  ? "bg-red-700 hover:bg-red-600 text-white border-red-500 shadow-md shadow-red-900/40"
+                  : "bg-neutral-800 hover:bg-neutral-700 text-neutral-200 border-neutral-700"
+              }`}
+            >
+              {sirenPlaying ? (
+                <>
+                  <VolumeX className="w-4 h-4 text-red-200" />
+                  <span>Silence Siren</span>
+                </>
+              ) : (
+                <>
+                  <Volume2 className="w-4 h-4 text-yellow-400" />
+                  <span>Sound Siren</span>
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header Band */}
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-neutral-800 pb-4">
         <div className="flex items-center gap-3">

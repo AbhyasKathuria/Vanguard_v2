@@ -42,9 +42,12 @@ import {
   List,
   ChevronRight,
 } from "lucide-react";
+import SOSScreenPopup from "@/components/SOSScreenPopup";
+import { useEmergencyAlerts } from "@/hooks/useEmergencyAlerts";
 
 export default function AuthorityDashboard() {
   const { t } = useLanguage();
+  const { currentAlert, dismissAlert, acceptAlert } = useEmergencyAlerts();
   const [stats, setStats] = useState<any>({
     total: 0,
     open: 0,
@@ -1388,6 +1391,9 @@ export default function AuthorityDashboard() {
           </div>
         </div>
       )}
+
+      {/* Real-Time Critical SOS Screen Alert for Authority */}
+      <SOSScreenPopup alert={currentAlert} onDismiss={dismissAlert} onAccept={acceptAlert} />
     </div>
   );
 }

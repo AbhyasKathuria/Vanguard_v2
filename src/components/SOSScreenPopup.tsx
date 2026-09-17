@@ -51,9 +51,28 @@ export default function SOSScreenPopup({
   const router = useRouter();
   const [isMuted, setIsMuted] = useState(false);
   const [accepting, setAccepting] = useState(false);
+  const [audioBlocked, setAudioBlocked] = useState(false);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const oscillatorRef = useRef<OscillatorNode | null>(null);
   const intervalRef = useRef<any>(null);
+
+  const speakAlert = () => {
+    if (typeof window !== "undefined" && "speechSynthesis" in window && !isMuted && alert) {
+      try {
+        window.speechSynthesis.cancel();
+        window.speechSynthesis.resume();
+        const categoryText = alert.category || "Emergency";
+        const locationText = alert.location || "Nearby Sector";
+        const speechText = `Emergency SOS Alert! High-priority ${categoryText} dispatch at ${locationText}. Immediate assistance required.`;
+        const utterance = new SpeechSynthesisUtterance(speechText);
+        utterance.rate = 0.95;
+        utterance.pitch = 1.05;
+        window.speechSynthesis.speak(utterance);
+      } catch (speechErr) {
+        console.warn("AI Voice announcement notice:", speechErr);
+      }
+    }
+  };
 
   // Sound Synthesizer via Web Audio API (Dual frequency 880Hz / 440Hz ambulance warble)
   useEffect(() => {
@@ -82,6 +101,26 @@ export default function SOSScreenPopup({
 
       osc.start();
       oscillatorRef.current = osc;
+
+      // Handle Autoplay Policy restrictions on mobile browsers
+      if (ctx.state === "suspended") {
+        setAudioBlocked(true);
+        const unlockAudio = () => {
+          if (audioCtxRef.current && audioCtxRef.current.state === "suspended") {
+            audioCtxRef.current.resume().then(() => {
+              setAudioBlocked(false);
+              speakAlert();
+            }).catch(() => {});
+          }
+          window.removeEventListener("click", unlockAudio);
+          window.removeEventListener("touchstart", unlockAudio);
+        };
+        window.addEventListener("click", unlockAudio, { once: true });
+        window.addEventListener("touchstart", unlockAudio, { once: true });
+      } else {
+        setAudioBlocked(false);
+        speakAlert();
+      }
 
       // Alternate tone between 880Hz and 440Hz every 350ms
       let high = false;
@@ -147,6 +186,11 @@ export default function SOSScreenPopup({
         audioCtxRef.current.close();
       } catch {}
       audioCtxRef.current = null;
+    }
+    if (typeof window !== "undefined" && "speechSynthesis" in window) {
+      try {
+        window.speechSynthesis.cancel();
+      } catch {}
     }
   };
 
@@ -233,6 +277,25 @@ export default function SOSScreenPopup({
 
         {/* Content Body */}
         <div className="p-6 space-y-5 text-white">
+          {/* Autoplay blocked banner for mobile browsers */}
+          {audioBlocked && (
+            <button
+              type="button"
+              onClick={() => {
+                if (audioCtxRef.current) {
+                  audioCtxRef.current.resume().then(() => {
+                    setAudioBlocked(false);
+                    speakAlert();
+                  }).catch(() => {});
+                }
+              }}
+              className="w-full py-3 px-4 bg-gradient-to-r from-red-600 via-rose-600 to-amber-600 hover:from-red-500 hover:to-amber-500 text-white font-black text-xs rounded-xl flex items-center justify-center gap-2 shadow-xl animate-pulse cursor-pointer border border-white/20"
+            >
+              <Volume2 className="w-4 h-4 animate-bounce" />
+              <span>🔊 TAP TO UNMUTE ALARM SIREN &amp; HEAR AI VOICE DIRECTIVE</span>
+            </button>
+          )}
+
           {/* Emergency Title & Tag */}
           <div className="flex flex-wrap items-center justify-between gap-2">
             <span className="px-3 py-1 bg-red-950/80 text-red-400 border border-red-800 rounded-lg text-xs font-bold font-mono uppercase tracking-wider flex items-center gap-1.5">
